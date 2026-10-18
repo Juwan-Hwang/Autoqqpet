@@ -17,6 +17,14 @@
   <a href="LICENSE.md">许可协议</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Juwan-Hwang/Autoqqpet/releases/latest"><img src="https://img.shields.io/github/v/release/Juwan-Hwang/Autoqqpet" alt="最新版本"></a>
+  <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases"><img src="https://img.shields.io/github/downloads/Xposed-Modules-Repo/com.juwanh.autoqqpet/total" alt="总下载量"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" alt="Android 8.0 以上">
+  <img src="https://img.shields.io/badge/LSPosed-模块-009688" alt="LSPosed 模块">
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/许可-EULA-8899BB" alt="许可协议"></a>
+</p>
+
 ---
 
 > **先读这三句**
