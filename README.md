@@ -8,7 +8,7 @@
 学习、打工、冒险、喂食洗澡，按你的意思安排，在你自己的手机 QQ 里自己跑。</p>
 
 <p align="center">
-  <a href="https://github.com/Juwan-Hwang/Autoqqpet/releases/latest"><b>下载最新版</b></a>
+  <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest"><b>下载最新版</b></a>
   &nbsp;·&nbsp;
   <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest">模块仓库</a>
   &nbsp;·&nbsp;
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Juwan-Hwang/Autoqqpet/releases/latest"><img src="https://img.shields.io/github/v/release/Juwan-Hwang/Autoqqpet" alt="最新版本"></a>
+  <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest"><img src="https://img.shields.io/github/v/release/Xposed-Modules-Repo/com.juwanh.autoqqpet" alt="最新版本"></a>
   <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases"><img src="https://img.shields.io/github/downloads/Xposed-Modules-Repo/com.juwanh.autoqqpet/total" alt="总下载量"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" alt="Android 8.0 以上">
   <img src="https://img.shields.io/badge/LSPosed-模块-009688" alt="LSPosed 模块">
@@ -85,7 +85,7 @@ certutil -hashfile autoqqpet-v<版本号>.apk SHA256   # Windows
 shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 ```
 
-1. 从 [项目主页 Releases](https://github.com/Juwan-Hwang/Autoqqpet/releases/latest) 下载最新 APK 并安装。在 LSPosed / Vector 商店里点“下载”会指向 [模块仓库 Releases](https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest)，两者是同一个文件。升级直接覆盖安装，设置与当日进度都在。
+1. 从 [模块仓库 Releases](https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest) 下载最新 APK 并安装；LSPosed / Vector 商店里点“下载”也是同一个文件。升级直接覆盖安装，设置与当日进度都在。
 2. 打开 LSPosed / Vector，启用 **Autoqqpet**，作用域勾选 **QQ**。
 3. **彻底关掉 QQ 再打开**（模块只在 QQ 启动时加载）。
 4. 打开 Autoqqpet，读完首启说明与许可协议，允许通知。
