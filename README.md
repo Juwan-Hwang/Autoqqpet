@@ -15,6 +15,8 @@
   <a href="CHANGELOG.md">更新日志</a>
   &nbsp;·&nbsp;
   <a href="LICENSE.md">许可协议</a>
+  &nbsp;·&nbsp;
+  <a href="https://t.me/Juwan_H">交流群</a>
 </p>
 
 <p align="center">
@@ -23,6 +25,7 @@
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" alt="Android 8.0 以上">
   <img src="https://img.shields.io/badge/LSPosed-模块-009688" alt="LSPosed 模块">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/许可-EULA-8899BB" alt="许可协议"></a>
+  <a href="https://t.me/Juwan_H"><img src="https://img.shields.io/badge/Telegram-交流群-26A5E4?logo=telegram&logoColor=white" alt="Telegram 交流群"></a>
 </p>
 
 ---
@@ -34,6 +37,12 @@
 > 3. **不开源，与腾讯无关。** 这里只提供安装包与使用说明；本项目不是官方产品，也没有获得任何授权或背书。
 
 ---
+
+## 交流群
+
+Telegram：https://t.me/Juwan_H
+
+反馈问题、交流用法都在群里，也可以去 GitHub 开 issue。
 
 ## 为什么用它
 
@@ -173,3 +182,4 @@ shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 ## 版本
 
 变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
