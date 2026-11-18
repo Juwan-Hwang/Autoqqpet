@@ -1,89 +1,133 @@
-# Autoqqpet 用户许可协议
+Required Notice: Copyright © 2026 Juwan Hwang (https://github.com/Juwan-Hwang/Autoqqpet)
 
-版本 2.1 · 生效日期 2026 年 10 月 15 日
-Copyright © 2026 Juwan Hwang. 保留所有权利。
+# PolyForm Noncommercial License 1.0.0
 
-## 简短说明
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-- **免费。** 没有内购、会员或广告。向你收费、卖“激活码”的人都与本项目无关。
-- **只给你自己用。** 装在你自己的设备上，用你自己的 QQ 账号。
-- **需要 Root 环境。** 本软件是 Xposed 模块，只能在已 Root 或装有兼容框架的设备上运行。
-- **有封号风险。** 这是非官方的自动化工具，QQ 可能限制你的账号，并且通常无法申诉。
+## Acceptance
 
-下面是完整条款。安装或使用本软件，即表示你同意这些条款。
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
 
-## 1. 授权范围
+## Copyright License
 
-Juwan Hwang（下称“作者”）授予你一项免费、非独占、不可转让、可撤销的个人许可：你可以在自己拥有或合法使用的设备上，安装并运行本软件的官方发布安装包，用来管理你自己账号下的 QQ 宠物。
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose.  However, you may
+only distribute the software according to [Distribution
+License](#distribution-license) and make changes or new works
+based on the software according to [Changes and New Works
+License](#changes-and-new-works-license).
 
-本软件**不是开源软件**。本协议只授予你使用权，不转让任何版权或其他知识产权，也不授予你获取源代码的权利。如需源代码授权，请先取得作者的书面同意。
+## Distribution License
 
-## 2. 使用前提
+The licensor grants you an additional copyright license
+to distribute copies of the software.  Your license
+to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works
+License](#changes-and-new-works-license).
 
-- 本软件是基于 libxposed 的模块，需要 Root 权限与 Xposed 兼容框架（如 LSPosed、Vector）才能运行，自身无法独立启动。
-- Root 与框架会改变设备原有的安全状态，可能影响保修、系统更新，也可能触发其他应用（如银行、支付类应用）的风控检测。是否 Root 你的设备由你决定，由此产生的风险与后果由你承担，作者不对 Root 或框架本身造成的问题负责。
-- 使用本软件时，你应同时遵守 QQ 的用户协议与相关规则，以及中华人民共和国法律法规。
-- 如果你未满 18 周岁，请在监护人知情并同意的前提下使用本软件。
+## Notices
 
-## 3. 限制
+You must ensure that anyone who gets a copy of any part of
+the software from you also gets a copy of these terms or the
+URL for them above, as well as copies of any plain-text lines
+beginning with `Required Notice:` that the licensor provided
+with the software.  For example:
 
-你不得：
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
 
-1. 出售、出租、转授权或以任何收费方式提供本软件，也不得把它捆绑进付费产品或服务；
-2. 修改或重新打包本软件后再分发，或分发任何衍生版本；
-3. 删除或篡改署名、版权和许可信息，或冒充作者、“官方版”、“内部版”进行分发；
-4. 替他人代挂，进行多账号托管、代练，或用于任何营利目的；
-5. 用本软件绕过实名认证、风控、未成年人保护或其他安全机制，薅取平台活动奖励，或骚扰、干扰其他用户；
-6. 声称本软件由腾讯开发、授权或认可。
+## Changes and New Works License
 
-你可以出于学习或安全研究目的反编译、分析本软件的运行方式，并发表结论，但不得借此发布代码或可运行的衍生版本。
+The licensor grants you an additional copyright license to
+make changes and new works based on the software for any
+permitted purpose.
 
-## 4. 隐私
+## Patent License
 
-- 本软件**不申请网络权限**，自身不联网：不收集、不上传任何数据，也没有统计、广告、崩溃上报或自动更新。
-- 它在你的 QQ 进程内调用 QQ 自带的宠物接口。这些请求由 QQ 发往腾讯的服务器，是本软件工作的唯一方式。
-- 设置、每日进度和日志只保存在本机，只有你主动导出或分享时才会离开设备。
-- 各项权限的用途：
-  - 通知和前台服务：保持后台运行，并在需要时提醒你；
-  - 开机自启：开机后自动恢复运行；
-  - 唤醒锁：让定时任务按时执行；
-  - 查询已安装应用：确认 QQ 已安装并唤起它，不读取其他应用的数据。
-- 本软件不会在其他应用上层显示内容，也不会在后台自行把 QQ 切到前台；只有你点“开启托管”或提醒里的“去 QQ 领”时才会打开 QQ。
-- 本节描述的数据处理做法如有改变，会先修改本协议并请你重新确认，不会先改做法再补协议。
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
 
-## 5. 风险与免责
+## Noncommercial Purposes
 
-本软件属于非官方自动化工具。腾讯可能限制相关功能、关闭宠物玩法或封禁账号，且通常无法申诉。使用的风险由你自行承担。
+Any noncommercial purpose is a permitted purpose.
 
-在法律允许的最大范围内，本软件按“现状”提供，不作任何明示或默示的保证，包括可用性、稳定性、适用于特定用途，以及与某个 QQ 版本兼容。QQ 更新后，本软件可能暂时失效。
+## Personal Uses
 
-对于因使用或无法使用本软件造成的任何损失，包括账号被限制或封禁、虚拟物品或游戏进度丢失、数据损坏或设备异常，作者不承担责任，法律强制规定作者必须承担的责任除外。
+Personal use for research, experiment, and testing for
+the benefit of public knowledge, personal study, private
+entertainment, hobby projects, amateur pursuits, or religious
+observance, without any anticipated commercial application,
+is use for a permitted purpose.
 
-## 6. 安全下载
+## Noncommercial Organizations
 
-请只从项目主页的 Releases 下载本软件，并在安装前核对发布页给出的 SHA-256 校验值：
+Use by any charitable organization, educational institution,
+public research organization, public safety or health
+organization, environmental protection organization,
+or government institution is use for a permitted purpose
+regardless of the source of funding or obligations resulting
+from the funding.
 
-```
-certutil -hashfile autoqqpet-v<版本号>.apk SHA256   # Windows
-shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
-```
+## Fair Use
 
-校验值不一致，说明安装包可能被篡改，请勿安装。对于修改版或从非官方渠道获取的安装包，作者不提供支持。
+You may have "fair use" rights for the software under the
+law. These terms do not limit them.
 
-## 7. 第三方组件
+## No Other Rights
 
-本软件使用了 AndroidX、Jetpack Compose、libxposed 等开源组件。这些组件仍适用各自的开源许可，本协议不限制你依据这些许可享有的权利。
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else.  These terms do not imply
+any other licenses.
 
-## 8. 终止与变更
+## Patent Defense
 
-- 你违反本协议时，许可自动终止。终止后请停止使用本软件，并删除其所有副本。
-- 作者可以停止分发或撤回任何版本。停止分发不影响你此前已合法取得的副本在本协议下的继续使用；但出于安全或法律原因，作者可以要求停用特定版本，届时应用内会给出提示。
-- 作者可以修改本协议。修改后的协议适用于之后的安装和继续使用；如有实质性变更，应用会请你重新确认。
-- 本协议任何条款被认定无效，不影响其余条款的效力。
-- 本协议是你与作者之间就本软件达成的完整协议。项目文档、页面说明与本协议不一致的，以本协议为准。
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
 
-## 9. 适用法律与商标
+## Violations
 
-本协议适用中华人民共和国法律。发生争议时，双方应先协商解决；协商不成的，任何一方可向作者住所地有管辖权的人民法院起诉。
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice.  Otherwise, all your licenses
+end immediately.
 
-“QQ”“QQ 宠物”及相关标识归深圳市腾讯计算机系统有限公司或其关联公司所有。本项目是个人作品，与腾讯没有任何关联，也未获得腾讯的授权或认可。
+## No Liability
+
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
+
+**You** refers to the individual or entity agreeing to these
+terms.
+
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+organizations that have control over, are under the control of,
+or are under common control with that organization.  **Control**
+means ownership of substantially all the assets of an entity,
+or the power to direct its management and policies by vote,
+contract, or otherwise.  Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
+
+**Use** means anything you do with the software requiring one
+of your licenses.

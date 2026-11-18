@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ 系统启动画面：团子 + 与界面同色的底，衔接到首帧。 -->
+<resources>
+    <style name="Theme.Autoqqpet" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_canvas</item>
+        <item name="android:colorBackground">@color/window_canvas</item>
+        <item name="android:colorAccent">@color/brand</item>
+        <item name="android:textColorPrimary">@color/window_ink</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowSplashScreenBackground">@color/window_canvas</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+    </style>
+</resources>

@@ -1,0 +1,24 @@
+buildscript {
+    ext {
+        kotlinVersion = '2.4.0'
+        agpVersion = '9.2.1'
+    }
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://mirrors.tencent.com/nexus/repository/maven-public/' }
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:${agpVersion}"
+        // AGP 9 内置 Kotlin 默认只带 KGP 2.2.10；显式钉到 2.4.0，Compose 编译器插件必须与它同版本
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:${kotlinVersion}"
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
+}

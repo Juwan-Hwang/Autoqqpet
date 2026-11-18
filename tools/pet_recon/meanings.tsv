@@ -1,0 +1,299 @@
+cmd	sub	meaning	evidence	status	note
+# sub 填具体子命令号或 *；evidence 填：实测(日期+机型/版本) / 静态A / 文档 / 问用户 / 猜测；
+# status 填：confirmed(已确认) / likely(大概率) / todo(待核) / rejected(确认不是)。
+# 这一行以上都是注释，脚本会跳过；正文按 cmd 升序无所谓。
+0x99f2	1	本人宠物资料（取 petId）	实测 2026-09-24 三星SM-S9380 QQ9.3.65	confirmed	OWN_PROFILE；resp f8=petId(base64，解出前缀 {uin}-)
+0x96f2	1	宠物数值显示（心情/体力/清洁/综合/金币）	实测 2026-09-24 QQ9.3.65	confirmed	DISPLAY；f2=0x01 取四维、f2=0x06 取金币
+0x9949	1	食物库存/喂食次数	实测 2026-09-24 QQ9.3.65	confirmed	FEED_TIMES；f4 repeated item
+0x9bf1	1	洗护商城配置	实测 2026-09-24 QQ9.3.65	confirmed	BATH_ITEM_CONFIG
+0x9bf2	1	洗护库存	实测 2026-09-24 QQ9.3.65	confirmed	BATH_INVENTORY
+0x975a	1	户外任务状态（剩余/总时长/可召回）	实测 2026-10-06 QQ9.3.65 + **抓包实测 2026-10-15 01:45 被雇佣场景**	confirmed	STORY_STATUS；detail#2剩余 #3总秒 #5recallable；必须 f100=2。**被雇时的实测形状**：`{1:**51**, 2:599, 3:600, 4:1791999904}` 且 storyId = `6400_<uuid>` → **被雇任务与普通打工同一个 6400_ 前缀，没有被雇专属前缀**；所以“是不是被雇”只能看 **state=51**（或结算文案里带“（雇佣）”），不能看前缀。本次 **`.5`(recallable) 没出现**，但 **2026-10-15 01:52:28 实测：被雇中的宠物照样能被自己召回**（界面按钮直接发了 `0x9760 action=6000` 并成功）→ **不能拿 recallable 缺失当“不可召回”用**，判据还是 state=51 / 故事名带“（被雇佣）”
+0x9ae6	? 或 0	**好友列表**（昵称+头像）	抓包实测 2026-10-14 19:50:41 SM-S9380 QQ9.3.75	confirmed	请求体几乎空；回包 repeated {1:uin, 2:昵称, 3:qlogo头像URL, 5:1}——旧行“好友页请求(待细分)”到此定名
+0x9c71	1	**好友列表（每好友：宠物信息 + 本人信息 + 三状态 + 火花类状态位）**	抓包实测 2026-10-14 19:50:41 + **2026-10-15 01:23:42（拆行后拿到完整 19300 字节，共 43 条记录）**	confirmed	请求{1:1}；每条记录 = `{1.1:宠物昵名, 1.3:宠物头像URL, 1.5:好友uin（串）, 1.6:varint∈{1,2}, 1.8:宠物petId, 1.11:宠物名, 1.13:{1:14,2:866}, 2.1:好友uin(int), 2.2:好友昵名, 2.3:qlogo头像, 2.5:varint∈{1,2}, 4.1~4.4:fixed32 三状态读数, 8:恒为1}`。**火花重要发现：全回包没有任何字段等于 6**（用户与啊_熙是 6 天）→ **连续天数不在这条里**；`.1.6` 在 43 人里取值 1/2（24×1、19×2）→ 更像“是否已点亮/待重燃”状态位；`.1.10` 在 13 人里取 2/4/5 → 更像标识等级或类型（两者均已被 0x985e 取代：火花明细的可靠读法是 `0x985e` 的 `.4.1.1.5`，不是本条；每好友天数则去看 `0x9b87` fetchSparkList）
+0x9b60	1	户外总览（6100 学园阶段 / 6400 职业列表）	实测 2026-09-24 + 抓包实测 2026-10-14 19:54:15	confirmed	请求{1:6400, 2:petId, **100=2**} → 这条用 2 是对的（与只有 0x9ab2 用 3 不矛盾）
+0x9ab2	1	场景目录（6100 课程 / 6400 岗位 / 6700 冒险）	实测 2026-09-24 QQ9.3.65 + 抓包实测 2026-10-14 19:48:49	confirmed	**重大修正：冒险目录要 f100=3 才回全量**（回包同时给“附近走走 45秒”与“诗和远方 2小时”）；我们模块现在用 f100=2，所以只拿到 1 条，“服务器只下发一条”的旧结论其实是参数错。目录依旧不回金币，只有工分 f15
+0x975e	1	开始故事：开课/开工/冒险/PK 统一入口	实测 2026-09-24 QQ9.3.65 + 抓包实测 2026-10-14 19:50:11	confirmed	f1 区分场景 6100/6400/6700/6900；**f100 仍用 2**（抓包实锤，只有 0x9ab2 目录用 3）；回包 .4.1=storyId、.4.4={1:state,2:总时长秒,3:剩余秒,4:开始时间戳秒}；冒险无需 f7(subEvent)，打工带 f6 岗位名+f7 subEvent
+0x9760	1	结算（action 1000）/ **召回与提前结束（action 6000）**	实测 2026-09-24 + **抓包实测 2026-10-14 19:17:51（召回 6000）与 19:50:56（到期 1000）**	confirmed	两个 action 都抓到了：召回={1:storyId,2:6000,3:petId,100:2}；到期领奖={1:storyId,**2:1000**,3:petId,4:0,100:2}。旧结论“所有 action 都 135004”实为当时故事不可召回。**到期是否发包取决于人在不在页面上**（19:33 人不在线→没发但服务端自结；19:50:56 人在页面→那一秒页面自己发 1000）→ 两条路都通，自动流程保留到期结算；但“开新任务前顺手结残留”已确认不需要（state=0 残留不阻断开工）。**被雇场景实测（2026-10-15 01:52:28）**：召回包形为 `{1:storyId, 2:6000, 3:petId, **4:3**, 100:2}` —— **`f4` 是 3 而不是我们一直发的 0**（界面自己发的值，含义待拆，可理解为“召回来源/场景”）；回包直接给结果：故事名「替摊主看摊**（被雇佣）**」、`.4.1.12`=“**未获得完整收益**”（提前召回确有损失）、`.4.1.16.7=47` 就是**实际到账金币**（实测 16169→16216，与之一分不差；界面预告的是 46）。
+0x975f	1	**进行中故事的通用进度轮询**（不只 PK）	抓包实测 2026-10-14 19:16-19:17（打工中每 7s 一次，召回后停止）	confirmed	请求{1:storyId, 2:petId, 100:2}；旧定性“PK_STATUS”不准，PK 只是复用同一条。**两个新用法**：① **结算页的奖励条目会出现在本条响应里**（`.4.16` bytes、`.4.17` 带 `pet-outdoor/result/icon/…` 的富文本）→ 读结算不一定需要 `0x9874`；② **`.4.1.1.2` 在 PK 场景就是时长（8 秒，已确认）**：PK 那发实测 `.4.1.1.2 = 8`，且开工 02:19:42 → 结算 02:19:51，**时刻差自己吻合**，用户亦确认“PK 确实只要 8 秒”；**但打工场景不能拿它当通用“剩余秒”**（同一字段在打工那发是 **102**，而任务 02:15 开始、标称 10 分钟 → 对不上）→ **两种场景语义可能不同，打工侧仍算待拆**。另：`.4.5`=场景号、`.4.3`/`.4.6` 实测均为 7（含义待拆）
+0x9c44	1	鼓励（学习/打工支持，冒险报 135011）	实测 2026-09-24 QQ9.3.65	confirmed	STORY_ENCOURAGE
+0x9ad4	1	战力（仅自身 f4 可信）	实测 2026-10-06 QQ9.3.65	confirmed	PK_POWER；好友响应字段含义已变
+0x985d	0	**底部好友栏数据源（福袋标记就在这里）**	实测 2026-09-24（静态名 PK_FRIEND_LIST）+ **抓包实测 2026-10-15 02:06:39 / 02:08:35 / 02:11:37 / 02:11:54**	confirmed	请求带分页 `{sid, offset}`；每条记录与 `0x9b87` 同族（`.1.1` 宠物昵名、`.1.5` uin、`.1.8` petId、`.1.11` 种类、`.2.2` 本人昵名、`.7` 状态文案“出门中”、`.10.x` 火花块）。★ **福袋标记 = `.21`**（形如 `⏎16100-<hash>`；**去掉换行与前导 1 就是领取包 `0x9d70` 的 `.4.3` 袋id**，“1”后面的 6100/6400 即来源场景）——实测**只有带角标的好友有 `.21`**，且**领完就消失**（好友B袋id 只出现在 02:06:39 与领取那一刻，02:11:37/02:11:54 两次刷新已不含；好友A的到 02:13:35 领完才消失）→ **自动化不需要自己记账，看 `.21` 在不在即可**。⚠ 旧定性“PK 好友池”待重核（同一命令可能多形态，至少这个形态是好友栏）。
+0x976c	0	好友宠物数值	实测 2026-10-06 QQ9.3.65	confirmed	FRIEND_PROFILE；body f1=好友UIN 不是 petId
+0x992d	1	喂食	实测 2026-09-24 QQ9.3.65	confirmed	FEED；回包为空，靠前后状态差判成功
+0x9bf3	1	洗澡	实测 2026-09-24 QQ9.3.65	confirmed	DO_BATH
+0x99df	1	买饼干	实测 2026-09-24 QQ9.3.65	confirmed	BUY_FOOD；resp f1 balance f2 gold f3 bought f4 cost
+0x9bd0	0	买洗护品	实测 2026-10-06 QQ9.3.65	confirmed	BUY_BATH_ITEM；成功码是 1 不是 0
+0x985b	0	踩踩/戳一戳	实测 2026-09-24 QQ9.3.65	confirmed	FRIEND_POKE；重复报 136202 属正常
+0x96a4	1	页面规则（服务端当日剩余次数 + 可执行路径）	实测 2026-10-06 QQ9.3.65	confirmed	PAGE_RULES；trace.count=当日剩余次数；paths 空则放行
+0x96a6	1	上报行为（洗澡/访问/开工前置）	实测 2026-09-24 QQ9.3.65	confirmed	REPORT_EVENT
+0x95e1	0	完整宠物对象（**不含三属性总量**）	实测 2026-09-xx QQ9.3.65	confirmed	GetUserPet；试过 f101=petId，力量/智力/魅力读不到
+0x9753	1	心跳/气泡文案查询（f1=-1 返回“你好呀/打工中”）	实测 2026-10-13 QQ9.3.75	confirmed	HeartBeat；不是领福袋也不是召回
+0x9777	1	领养宠物	静态A	confirmed	AdoptPet；配合 0x9779 候选名单
+0x9779	1	候选宠物名单	静态A	confirmed	GetCandidatePets；领养界面用
+0x9778	1	灰度准入检查	静态A	confirmed	CheckUserInGray
+0x97ba	0	升级/等级配置	静态A	likely	GetUpgradeConfig
+0x99e9	1	保存一套穿搭	静态A	likely	SaveOneSuit
+0x99ea	1	我的套装列表	静态A	likely	GetMySuits
+0x99ed	1	服装列表	静态A	likely	GetClothing
+0x99eb	1	资源红点查询	静态A	likely	GetRedDot
+0x99ec	1	资源红点上报	静态A	likely	ReportRedDot
+0x994b	1	喂食红点查询	静态A	confirmed	GetRedDot(Feed)
+0x994c	1	**消息已读上报（ReportRedDot）**	静态A + 抓包实测 2026-10-15 01:46:36（紧跟 0x994a 之后）	confirmed	请求 `{4.1.1: 3, 4.1.2: 通知时间戳ms}` → 就是“把刚才那条通知标已读”，第二个字段用的就是 0x994a 里的 `.3`（不是自增 id）
+0x99ef	1	**代喂后“我喂了你宠物”的推送消息（Sso_PetFeed_PushFeedMsg）**	静态A(PushFeedMsg) + **静态坐实（`s6/h.t(I)V` 文案“sendPushFeedMsg: accFoodNum=”/“, targetUin=”；ergo `MainPageViewModel.e2(IJ)V` 服务名 `trpc.qqone.gateway.Gateway.Sso_PetFeed_PushFeedMsg`，带 petMasterUin/mNick/mAvatarUrl）** + 三个真机样本（10-14 20:49:32、23:44:47，10-15 00:21:04）	confirmed	请求 `{1:好友uin（**字符串**）, 2:昵称（又是零宽占位符，与 0x992d 同套路）, 4:1, 5:0, 6:“1”}`；回包 `.4/.5` 全空。**触发时机：在 0x992d 喂食之后约 2 秒自动发**（之前“买不触发、踩不触发、喂好友后才出现”的困扰到此解释：它就是喂完给人发的通知）。⚠ **`f4`/`f6` 三个样本都是 1，但都是“喂 1 个”** → 它们是不是“口粮数量”尚未用变化样本坐实（待：一次喂 ≥2 个）。**★ 重要差异：这包是 ergo 主页发的，我们模块走 delegate 代喂时不会触发 → 代喂时对方收不到“谁喂了我宠物”的推送**。**★ 悬案结案（2026-10-15 02:44）**：产品上**只能一个一个喂**（用户确认），而批量路径“一键照顾”实测**根本不发本包** → **`f4/f6` 永远只能是 1，不存在“>1 的样本”**，实现里按常量 1 发即可，不必再追这个字段。
+0x97ac	1	设置桌宠 C2C 开关	静态A	confirmed	SetC2CPetSwitch；日志 setC2CPetSwitchToServer friendUin/isOpen
+0x9a02	1	读桌宠 C2C 信息	静态A	confirmed	GetC2CPetInfo
+0x9a03	1	写桌宠 C2C 信息	静态A	confirmed	SetC2CPetInfo
+# 0x985c 旧行已合并到下方 01:1x 清扫那组（同一命令不重复记两行）
+0x9764	0	日历红点查询	静态A	likely	GetCalendarRed
+0x9765	0	日历红点读取	静态A	likely	ReadCalendarRed
+0x9bb1	0	上报行为动作（气泡/动作）	静态A	likely	ReportAction；参数 actionId/actionScene/bubbleSource
+0x9ce9	1	主页某个读写（待定）	静态B	todo	只抓到命令名没抓到服务名
+# —— 2026-10-15 01:1x 只读 command 主动清扫（rawsend，参数统一用 {1:petId,100:2}）
+0x985d	1	踩踩页面的另一条前置读取（时间戳 01:20:44，与 0x9ae6 同刻）【2026-10-16 复核 lk.txt 原始记录：该次实为 _0，本行系误记，0x985d 未见 _1】	抓包实测 2026-10-15 01:20:44（6598 字节）	refuted	内容未拆；与 0x985e（明细列表）同族，待分
+0x99eb	1	**资源红点查询 GetRedDot**	抓包实测 2026-10-15 01:15（rawsend）	confirmed	回包 85 字节，`f1` = repeated 资源 id（如 08950a/08e907）→ 就是“哪些装扮/资源有新内容”
+0x9764	0	日历红点查询（**两个返回字段含义未知；已不是火花候选**）	抓包实测 2026-10-15 01:15 / 01:22（rawsend）	likely	回 `{.2: 1791820800（按+8 为 2026-10-13 00:00）, .4: 6}`。**火花已确认另有专属命令 `0x9b87`（里面直接给天数）**，而本条请求只带自己 petId、界面也没任何地方显示 6 → 那个 6 事后证明只是撞上某个好友的 6 天，别再拿本条当火花读数。与 0x9765 上报成对
+0x985c	0	**踩踩次数查询 QueryLikeCount**	抓包实测 2026-10-15 01:15 / 01:22（rawsend）	confirmed	回包 `.1 = “312”`——**是字符串不是整数**；**用户确认：312 = 累计被踩（获得踩踩）的总次数**，不是今日次数（今日可踩上限另看 0x9762/主页）**用户给的业务规则（官方 FAQ 原文口径，重要）：火花 = 与某好友连续互踩天数，每人各自一个值；连续 3 天就点亮（不足 3 天界面显示“点亮 1/3”）；忘踩一天不是清零，而是进入“待重燃”（天数暂停增长但保留），7 天内重新互踩可重燃延续；连续 7 天不互踩才清除、天数归零，需重新连踩满 3 天**（比我之前写的“断一天即归零”宽松得多，调度设计必须按这个口径）。要拿每好友天数得另找命令（已排除 0x9c71：里面没 6）
+0x9db9	1	**等级奖励/解锁动作列表**	抓包实测 2026-10-15 01:15（rawsend，11540 字节）	confirmed	内容：`“比心”/“1级解锁动作”/“去发送”/图标 URL` → 等级解锁的是**动作/表情**（用户早已知此事）。注：职业的属性门槛与解锁费用在 `0x9b62` 里本来就是 `???`（未解锁那档无数值），这两个是不同的东西
+0x97ba	0	升级/等级配置 GetUpgradeConfig	主动发时空响应（参数不对）	likely	不能当作否定；需要正确的 body 再试
+0x975c	?	查询宠物“在玩”状态	静态C(pet_play: queryPetPlayStatus send petId=)	likely	整数号出现，sub 未定
+0x9762	0	**日记：日历月视图（逐日有无日记 + 情绪 + 氛围图）**	抓包实测 2026-10-15 02:00:02（用户进《宠物日记》页）	confirmed	请求 `{1:petId, 3:“年-月”字符串}`；响应 `.4.1.1` = repeated 每日 `{1:日期, 2:日记id(uuid), 3:氛围图URL, 4:状态, 6:另一图URL, 7:{1:1, 2:情绪名“狂喜”, 3:图URL}, 8:4}` → 就是顶部周历条上每天那个图标的数据源。**月份字段已核清（02:01:53 / 02:02:20 两次实测均带 `2026-10`）**：`.4.3` 就是“查哪个月”，进页时那条带 `2026-09` 是**上月预取**；右上角的“日历”页**没有新命令，用的就是本条的月视图**（与日记页共用）。
+0x9763	0	**日记：单日详情**	抓包实测 2026-10-15 02:00:02（与 0x9762 同一刻成对发）	confirmed	请求 `{1:petId, 3:“年-月-日”字符串}`（实测 `2026-10-01`，切天后又发过 `2026-09-23` → **可跨月按日查**）；响应 `.4.1` = `{1:日期, 3:氛围图URL, 4:1, 6:图URL, 8:3}`、`.4.2` = 下一个日期… → 卡片上的情绪/标题/正文/落款就来自这一条（“内容由AI生成”）。**与 0x9762 的区分：0x9762 按月、0x9763 按日**。
+0x9a98	?	访客/小尾巴红点查询	静态A(sendRedDotRequest guestTinyId=)	todo	非宠物主功能
+0x95f3	0	读取宠物资源清单（装扮/场景配置）	静态A	confirmed	GetResource；配合 0x95f7 的序号做增量
+0x95f7	0	资源序列号/增量拉取	静态A	confirmed	GetSequence；参数 lastResourceHash
+0x96a5	1	单个事件规则查询（能不能做、剩余次数）	静态A	confirmed	GetEventRule；与 0x96a4 同一套 behavior 模块
+0x9959	1	主页资源/配置读取	静态A	confirmed	PetHome_GetResource
+0x99f1	1	宠物资料更新（昵称/简介等）	静态A	confirmed	UpdateProfile；设置页可改名
+0x99f3	1	保存宠物头像	静态A	confirmed	SaveAvatar；配合 0x9a04 上传
+0x9a04	1	媒体上传（生成好的头像图）	静态A	likely	MediaUpload_Upload；非宠物专有网关也有同名
+0x99f4	1	宠物开关设置读取	静态A + 设置页模块(pet_settings_main: switchInfo/patPush)	confirmed	PetSettingManager；两处独立证据对上
+0x99f5	1	宠物设置数据上报/获取	静态A + 设置页模块(pet_settings_main: show_audio/pet_quality_changed)	confirmed	PetSettingManager；两处独立证据对上
+0x985e	0	**踩踩页面：被踩/获赞明细列表（内含“火花是否点亮”与每好友宠物的可雇佣状态）**	静态C(pet_like_list.fetchLikeList) + **抓包实测 2026-10-15 01:28:01（完整 16672 字节，13 条记录，与界面逐项对账）**	confirmed	顶层：`.4.3`=总获得次数（实测“312”=界面“总共获得 312”）、`.4.4`=今日新增（“1”）、`.4.5`=分页 JSON `{"start":20,"limit":20}`。每条 `.4.1` = `{1.2:访客昵名, 1.3.1:日期串, 1.5:不透明 token, 1.6:{4:"ss:<自己uin>:<好友uin>:<时间戳ms>"}, 1.7.6:与该好友的累计次数（实测有 1/2/3/6/7/19，对得上界面“累计 19 次”）, 1.7.7:该好友宠物的状态文案（实测“不可雇佣”/“出门中”）, 1.7.8:恒 1, 1.7.21:storyId 形态“16100-…”/“16400-…”}`。 **2026-10-16：sub 必须是 0**——`_1` 回 150 no privilege（日志一天 37 次白耗），模块已改 `0x985e_0`；150 是业务码不计入“连不上”。
+★ **火花标志位 = `.4.1.1.5`（2=已点亮，1=未）**：13 条里值 2 的**正好 7 条**，与界面“火花 7 人”完全吻合；“点亮中 1/3”的进度具体在哪位**尚未定死**（候选 `.4.1.6.*`，只有部分记录带）。已排除 0x9c71 作为火花来源。
+★ **附带价值**：这一页同时给出“不可雇佣/出门中”状态→ 筛人不用逐个进主页。⚠ **但这里列的是“来踩过你的人”，不一定是好友（用户指出）**，不能把它当好友名单用。访客昵名与 uin 都是账号数据，不得外流。
+0x9b87	?	**火花列表 fetchSparkList（每好友连续互踩天数就在此）**	静态C(pet_like_list.fetchSparkList) + **抓包实测 2026-10-15 01:28:01（用户点「火花 7 人」，8368 字节，12 条记录）**	confirmed	顶层 **`.4.2 = {"remain":[],"total":7,"version":1}`** 与 `.4.4 = 7` → **`total` 就是界面上的“火花 N 人”**。每条 `.4.1` = `{1.1:对方昵名, 1.5:对方uin, 1.11:对方的宠物名, 2.2:本人昵名, 7:状态文案“出门中”/“不可雇佣”, 10.1∈{1,2,3}, **10.2:连续互踩天数**, 10.3/10.6/10.8/10.9/10.10:其余标志, 16:文案“和你互踩了N天…”}`。
+★ **天数读法已实测对齐**（`.10.2` 与 `.16` 文案逐条吻合：20/16/6/15/19/7/6 天）。
+★ **`.10.1` = 火花阶段（实测定死）**：**1 = 已点亮在燃**（文案“和你互踩了N天，今日还没互踩哦”或“小火苗升腾中”，后者代“今日已踩”）、**2 = 待重燃**（文案“和你N天没互踩，今日互踩即可重燃”，**此时 `.10.2` 天数仍保留**，与官方“暂停增长但保留”一致）、**3 = 未点亮**（**根本没有 `.10.2` 字段**，也无文案）→ 实测 12 条 = 1×4 + 2×3 + 3×5，**其中 1+2 正好 7 条，就是界面“火花 7 人”**。
+★ 每好友火花只需**一条 `0x9b87`** 即可拿齐（uin + 天数 + 阶段），不用逐页翻。
+待拆：`.1.6`（1/2）、`.1.10`（2/5）、`.3`（实测 50/40/10，与阶段无关）、`.10.3/.10.6/.10.8/.10.9`、`.10.4` 里那个时间戳（看起来像“最后互踩时间”，但断 2 天的比断 3 天的时间戳更晚 → **不是**，待定）。
+0x9a12	?	发送点赞	静态C(AILiteGY.sendLike)	likely	
+0x9ba3	0	**日记（纪念）点赞**	静态C(pet_diary.likeMementoRequest) + 抓包实测 2026-10-15 02:02:19（用户点爱心）	confirmed	请求 `{1:petId, 2:日记id(uuid)}` —— 日记id 就是 `0x9762` 响应里的 `.4.1.1.2`；回包 `.4` 是**文案**「接受你的点赞啦～」（不是错误码也不是布尔）→ 判成功看这句或看 `.2=0`。
+# 0x9762 旧行已合并到上方 02:00 那组（同一命令不重复记两行）
+# 0x9763 旧行已合并到上方 02:00 那组（同一命令不重复记两行）
+0x994a	1	**消息/通知中心列表（“被雇佣”就是靠这条通知告诉被雇方）**	抓包实测 2026-10-15 01:46:35（小号 01:45 雇佣主号宠物后，主号进消息页时拉到）	confirmed	请求体几乎空；每条响应 = `{1:对方uin, 2:富文本三段 [{"01:45 雇佣了"},{"<雇主昵名>","font_weight:2"},{"，快去看看TA吧！"}], 3:通知时间戳ms, 4:通知id(uuid), 5:昵名, 6:**场景号 6400（打工）**, 7:1, 11.x:附带宠物信息, 100:按钮文案“查看"}`。**⚠ 推翻旧定名“喂食历史序列更新”**；而且通知是**进页面才拉取**、不是即时推送（01:45:04 发生 → 01:46:35 才有包）	
+0x994d	?	喂食历史分页	静态C(pet_feed_history.loadHistoryPage)	likely	
+0x99c9	?	推荐内容流	静态C(AILiteGY.fetchRecommendFeed)	likely	容器页共用，可能不是纯宠物
+0x99ca	?	内容详情分页/主页档案	静态C(AILiteGY.loadMoreContentDetails,fetchHomeProfile)	likely	
+0x9a3f	?	音色列表	静态C(qq_pet_voice_select.fetchVoiceList)	confirmed	语音选择页
+0x9a56	?	（AILiteGY 容器）待定	静态C	todo	
+0x9a02	?	桌宠 C2C 信息读取	静态A	confirmed	与 0x9a03 成对
+0x9abe	?	每日任务列表	静态C(pet_level_task.loadDailyTasks)	confirmed	等级任务页
+0x9ac0	?	主页弹窗列表	静态C(pet_home.fetchPopups)	confirmed	
+0x9b04	?	收藏	静态C(AILiteGY.sendFavorite)	likely	
+0x9b1a	?	批量上报/批量发送	静态C(AILiteGY.sendBatch)	likely	
+0x9b61	?	NPC 引导上报	静态C(pet_academy/career_town/play.reportNPCGuide)	confirmed	新手引导相关
+0x9bcc	?	资产流水	静态C(pet_product_flow.fetchFlows)	confirmed	
+0x9bcd	?	余额	静态C(pet_product_flow.fetchBalance)	confirmed	
+0x9bce	?	钻石/代币商品列表	静态C(pet_product_list.fetchDiamondList)	confirmed	
+0x9bd1	?	购买凭证/月卡	静态C(pet_product_list.doBuyVoucher)	confirmed	写操作，不要盲发
+0x9bd2	?	购买参数拉取	静态C(pet_product_list.buyParams)	likely	
+0x9bd5	?	市场全部商品	静态C(pet_home+pet_play.fetchAllMarketGoods)	confirmed	
+0x9be3	?	校验购买凭证	静态C(pet_product_list.doCheckBuyVoucher)	confirmed	
+0x9bf5	?	（商城/主页）状态查询	静态C(pet_home+pet_product_list.getStatus)	likely	
+0x9c1b	?	宠物名片数据	静态C(pet_profile_card.fetchProfileCard)	confirmed	
+0x9c7f	?	强制设置 QQ 基础开关	静态C(qq_pet_adopt.sendForceSetQQBaseFlag)	likely	领养流程内
+0x9ca2	?	重生条件/配置	静态C(qq_pet_adopt.fetchRebirthCon)	likely	rebirth config
+0x9d50	?	标签列表	静态C(AILiteGY.fetchTags)	likely	
+0x9db9	?	等级奖励信息	静态C(pet_level_reward.loadLevelRewardInfo)	confirmed	
+0x9414	?	分享信息	静态C(pet_chat_immerse.fetchShareInfo)	likely	
+0x989b	?	曝光/详情页进入埋点	静态C(AILiteGY.reportExposure,reportEnterDetailPage)	likely	埋点，非业务
+0x9515	?	标签上报	静态D(page_craft_main.reportTags)	todo	
+0x99c1	?	拍一拍好友宠物	静态D(pet_home.sendPatFriendPet)	likely	与 0x985b 踩踩不同
+0x99c2	?	一键照顾配置	静态D(pet_home.fetchOneClickCareConfig)	confirmed	我们的一键照顾就靠这个
+0x9036	?	非命令：UI 组件里的浮点位模式巧合	跨 4+ 个页面的 blurStyle/textStyle 方法	rejected	判废依据：无发包语汇且跨页面通用
+0x9200	?	非命令：UI 组件里的浮点位模式巧合	跨页面 UI 方法	rejected	
+0x9ac5	?	佩戴勋章	静态C(pet_medal_detail：pet_medal_equip_changed、文案“勋章已佩戴到头像”)	confirmed	参数 medal_id/pet_id/is_equipped/icon_url
+0x9ac8	?	取消佩戴勋章	静态C(pet_medal_detail：文案“已取消佩戴”)	confirmed	与 0x9ac5 成对
+0x9ac3	? 或 0	勋章墙列表	抓包实测 2026-10-14 19:31:14 SM-S9380 QQ9.3.75	confirmed	实抓 sub=0；回包逐项带勋章 id/名称/达成描述（如 21286 宠友星探员）
+0x9ac6	? 或 0	勋章详情	抓包实测 2026-10-14 19:31:17；静态名 pet_medal_detail.loadDetail	confirmed	请求{1:petId, 2:medalId(21286)}；回包给名称/达成条件/分类/图标URL/描述文案/获得时间
+0x9ac5	? 或 0	**佩戴勋章**	抓包实测 2026-10-14 19:31:18（先点佩戴）；静态补强 pet_medal_equip_changed、文案“勋章已佩戴到头像”	confirmed	请求{1:petId, 2:medalId}，回包只有 errorCode 0
+0x9ac8	? 或 0	**取消佩戴勋章**	抓包实测 2026-10-14 19:31:21（随后点取消）；静态文案“已取消佩戴”	confirmed	与 0x9ac5 同形状，仅命令号不同；两行靠点击顺序与静态文案定为 佩戴/取消
+0x96a6	1	上报行为（页面路径码已扩充）	实测 2026-09-24 + 抓包实测 2026-10-14 19:31:12	confirmed	勋章页进入上报 path={11000, 80, 0}；装扮页为 {1000,100,101}——这些就是页面无操作时的门禁计数上报
+0x9b63	?	职业树装备/转职点击	静态C(pet_job_tree：onEquipClick start careerType=)	likely	日志带 [Pet][CareerTree][VM]
+0x9b62	?	职业树页另一条请求	静态C(pet_job_tree)	todo	无文案，靠 drill
+0x99c3	?	技能列表/技能详情数据加载	静态C(pet_skills_list.loadPageData、PetSkillDetailPage)	confirmed	
+0x9ba4	?	取消日记（纪念）点赞	静态C(pet_diary.cancelLikeMementoRequest)	confirmed	与 0x9ba3 成对，日志“取消点赞成功 mementoId=”
+0x9bcf	?	商店购买前余额校验	静态C(pet_home+pet_play.StorePaymentManager checkBalance req: cmd=0x)	confirmed	日志带 items/result/guides/petId empty
+0x9bd9	?	货币账户刷新（金币余额）	静态C(CurrencyAccountDataSource fetchCurrencyAccount: gold=, cachedGold, currencyType)	confirmed	
+0x99de	?	免费领取食物（领取确认）	静态C(qq_pet_feed_claim：em_pet_accept、biscuit_num、pg_pet_feed)	likely	与 0x99df 买饼干不同
+0x9b5e	?	食物购买页某步	静态C(qq_pet_feed_purchase)	todo	只抢到个“11”
+0x9bb3	?	PK 页另一条	静态C(pet_pk)	todo	模块已确定是 PK
+0x9510	?	聊天沉浸页 DocArk 卡片请求	静态C(pet_chat_immerse.requestDocArk success, ark:)	likely	
+0x95bb	?	聊天沉浸页另一条	静态C(pet_chat_immerse)	todo	
+0x91c0	?	领养页 alpha 视频资源相关	静态C(qq_pet_adopt：PetAlphaVideo bind fromLocal)	todo	不像业务命令
+# —— 以下为 AI 轻应用容器（AILiteGYMainActivity）的通用命令，**不是宠物业务**，标出以免误当目标
+0x9b8f	?	【容器】关注	静态C(AILiteFollowRequest send: followeeUin)	confirmed	非宠物
+0x9b90	?	【容器】取关	静态C(AILiteUnfollowRequest)	confirmed	非宠物
+0x9b94	?	【容器】批量关注关系查询	静态C(AILiteBatchFollowRelationReq batchQuery)	confirmed	非宠物
+0x9b95	?	【容器】推荐用户列表	静态C(AILiteGetRecommendUsersRequest send: limit=)	confirmed	非宠物
+0x9a17	?	【容器】兴趣标签/反馈面板	静态C(AILiteInterestTagApi resetShownFlag type=299)	likely	非宠物
+0x99c7	?	【容器】内容发布（带 BGM）	静态C([PublishReq] contentId=, bgmId=, ComicBgm)	likely	非宠物
+0x99c8	?	【容器】分享配置缓存	静态C(AILiteShareConfigMgr restoreFromMMKV)	likely	非宠物
+0x9945	?	【容器】应用/内容信息设置	静态C(AILiteBrowserTopBarViewModel requestSetInfo)	likely	非宠物
+0x9b68	?	【容器】子页签配置与红点	静态C(AILiteSubTabConfigManager、AILiteRedDotManager fetchRedDot)	likely	非宠物
+0x99c9	?	【容器】推荐内容流	静态C(fetchRecommendFeed)	likely	非宠物
+0x99ca	?	【容器】详情分页/主页档案	静态C(loadMoreContentDetails,fetchHomeProfile)	likely	非宠物
+0x9040	?	【容器】上传保存（“正在上传/保存中”）	静态C(AILiteGY)	likely	非宠物
+0x9a13	?	【容器】底栏弹窗确定	静态C(AILiteBrowserBottomBarView alertDialog click ok)	todo	非宠物
+0x9a50	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x9a51	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x9a52	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x9a53	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x9a54	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x9a55	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x9a56	?	【容器】待定	静态C(AILiteGYMainActivity)	todo	无文案
+0x975c	? 或 1	场景总览与入口状态（学园/职业小镇/冒险）	抓包实测 2026-10-14 19:16 SM-S9380 QQ9.3.75	confirmed	请求{1:6000, 2:petId, 100:2}，实抓 sub=1；回包逐项给“宠物学园/会获得经验值/6100”“职业小镇/会获得金币/6400”“冒险”与不可用文案（“今天有点累啦，先回家休息一下”）——场景入口能不能进的真值；模块日志名 queryPetPlayStatus 与之吻合
+0x96ef	?	当日次数/规则类读取	静态D(pet_home) + 抓包实测 2026-10-14（开工前自动发出）	likely	请求{1:petId, 2:1000, 4:0}；回包 .4=10b0ea01
+# —— 2026-10-14 真机抓包实测（钩 QQKuiklyPlatformApi.call("sendPbRequest")，在好友宠物页点福袋）
+0x9d71	0	金币袋列表/前置查询	抓包实测 2026-10-14 20:08:34（比 0x9d70 早 0.4s）；回包与领取同构	confirmed	请求{1:自己petId, 3:同一个袋id}——**不带好友petId**；旧行写的 sub=1 错，实抓 sub=0
+0x9d70	0	**开/领好友金币袋（福袋）**	抓包实测 2026-10-14 20:08:34（完整回包）+ 用户确认“本次领到 5 金币”；模块方法名 fetchCoinBagDetail	confirmed	请求{1:自己petId, 2:好友petId, 3:袋id(前缀=来源场景，本次 6400-…), 11:2}；回包 errorCode=0，字段语义已对齐：**f11=197 这批袋的金币总额、f12=192 领完后的余额（197-5=192 ✓）**；另有 {2:产生时间,3:可领时间,4:过期时间,5:类型,6:主人uin,7:主人petId,8:来源storyId,9:场景号}；文案段 {1:袋个数=5, 2:“5个福袋共 197 金币，已领1个”}；本次金额 5 出现在 .4.1.2.4（与个数 5 同值，靠下一次不同数值区分）。
+★ **袋id 来源已找到（2026-10-15 两次领取实锤）**：就是 `0x985d` 好友栏记录里的 `.21`（好友B `6100-1a2b3c4d-…`、好友A `6400-5e6f7a8b-…`，hash 逐字相同）→ **自动化链：读 `0x985d` 取 `.21` → 去前导“1”得袋id → `0x9d71_0` 查详情 → `0x9d70_0` 领取**。
+★ **读数口径修正**：本次两发实际到账 **7 金币（好友B）** 与 **2 金币（好友A）**（用户已更正：先前说的 11 不是到账数）。**余额完全闭环**：16226 → +7 → 16233 → +2 → **16235**（02:18 实测）。好友B那次回包有 `.4.1.1.11=153 / .12=146`（差 7），但**好友A那次根本没有这两个字段**（只有 `.13=4 / .14=3`）→ **f11/f12 不是恒定字段，别拿它做账**；**可靠读法是文案 `.4.1.3.2`**（实测「5个福袋共 330 金币，已领2个」）+ 前后余额差。
+0x9955	?	按 coinBagId 拆开金币袋	静态C(pet_home：onSelfPetReady retry openByCoinBagId=)	likely	自己宠物的拆袋动作，本次未触发（好友页只有领取）
+0x9ae7	?	分享金币袋 / 邀请好友	静态C(pet_home：shareCoinBag、pet_friend：inviteFriend)	likely	同一方法里两个名字共存，归属未定，需抓包定
+0x9875	?	**雇佣可用性查询（对“目标好友”而不是对自己）**	抓包实测 2026-10-14（每 3s 一次，x84；回包含“宠物正在写作业呢，稍后再来吧”）+ **2026-10-15 02:32:37**	confirmed	请求 `{1:目标好友petId, 2:目标好友uin, 3:自己petId, 4:2, 100:2}` → 进好友主页时页面**每 3 秒自动发一次**（不是我们发的）；PK 场景下它查的是**对手**能不能雇。回包给“能不能雇/今日 20 次上限”类文案
+0x96ef	?	主页/好友页资源读取	静态D(pet_home) + 抓包实测 2026-10-14	likely	在好友页反复出现
+0x9bf6	?	商店购买协议确认	静态C(pet_home+pet_product_list.PurchaseAgreementManager “[Pet][Store][Agreement] confirm rsp confirmed=”)	confirmed	写操作
+0x9c1d	?	解锁职业	静态C(pet_job_tree.PetJobTreeVM onUnlockCareerClick)	confirmed	写操作；日志带 empty petId 校验
+0x9c9c	?	更换领养（重生宠物）	静态C(qq_pet_adopt.rebirthPet: oldPetId=, eyeTextureResId=；文案“更换领养失败”)	confirmed	对应 0x9ca2 重生条件
+0x9d9e	?	使用道具（远程生效）	静态C(pet_play.PetPlayPropVM usePropRemote fallback: no storyId)	confirmed	走页面自带 OIDB 通道（AISafeRequest）
+0x9e0a	?	解锁等级奖励	静态C(pet_level_reward.requestUnlockLevelReward / onUnlockConfirmOk level=, coins=)	confirmed	写操作
+0x9009	?	【容器】新手指引推荐加群	静态D(page_craft_main.FreshmanGroupsService GetRecommendGroup/joinGroupAuth)	likely	非宠物
+0x91e0	?	【容器】发送表情/表态	静态D(page_craft_main.SendEmotionService SSO失败/成功)	likely	非宠物
+0x9377	?	【容器】天选活动动作（带 txCaptcha）	静态D(page_craft_main.PageCraftTianxuanSSO execAct[SSO])	likely	非宠物
+0x95e8	?	【容器】批量查询资格	静态D(page_craft_main.BatchGetQualification)	likely	非宠物
+0x9638	?	【容器】使用推广/扩散资格	静态D(page_craft_main.UseActiveDiffusion “未开通 diffusionRes=”)	likely	非宠物
+0x9c79	?	【容器】推荐卡片轮询/引导气泡	静态C(AILiteRecommendViewModel sendGuideBubble/cardType=FOLLOW_USER)	likely	非宠物
+0x9c7a	?	【容器】卡片曝光上报	静态C(AILiteReportCardExposure send: cardType=, usersCount=)	likely	非宠物
+0x9d51	?	【容器】提交兴趣标签	静态C(AILiteInterestTagApi submitTags: tagIds=)	likely	非宠物
+0x9cee	?	【容器】顶栏相关待定	静态C(AILiteBrowserTopBarViewModel)	todo	非宠物
+0x91b6	?	非命令：Canvas 渲染回调里的位模式巧合	静态D(Canvas/drawCallbackEmpty，跳跨 3 个无关页)	rejected	
+0x9030	?	非命令：埋点参数名表（APP_ID/PAGE_ID/TRACKER）	静态D(page_craft_main)	rejected	
+# —— 2026-10-14 19:29 换装实测（进装扮页 → 穿戴 → 保存）
+0x9874	1	**到期结算展示页（含奖励明细）**	抓包实测 2026-10-14 19:33:12（打工 600s 到期那一秒）SM-S9380 QQ9.3.75；2026-10-15 00:14:17 再过一次	confirmed	请求{1:petId, 2:storyId, 3:结算时间戳ms, 4:2, 100:2}；回包 .4.1 带叙事文案 + 奖励条目（名称/数量/图标URL，如“工分 +3”）——收益明细结构就在这里。**雇主雇佣实测样本（00:14:17）：`{金币 91}` + `{工分 +10}`**，对比普通 10 分钟打工≈40 金币 → 雇佣加成 ≈ 2.3× **2026-10-16 补：传任意 storyId 都能读单条详情（进行中/已结束），与 0x975b_1 成对发出**。body.1 字段：`.7` 标题、`.8` 结果枚举（=`.15.4`；列表里 `.4`）、`.10` 开始时间戳(秒)、`.11` 场景、`.13` 课程 id、`.15.12` 课程分钟数、`.9` 叙事流水 {2:第几秒, 3:JSON 文案}、`.12` 文案（如「今日奖励已达上限，本次未获得额外奖励」= PK 每日奖励上限）、`.3.1` 奖励条目 {2:名称(属性名/金币…), 3:数值, 7:同值} → 本次学习加的属性直接读这里，不用比 0x9b62 差值（A+ 记录可能没有属性块；“A+ 额外魅力+3”字段未找到，不要假设）。结果枚举跨类型共用：学习 1=A+ 2=A 3=B+；PK 4=胜 6=负；7 未解 → 先看 `.11` 场景再解。
+0x9876	1	**《出门记录》历史流水列表（学习/打工/冒险/PK）**	抓包实测 2026-10-14 20:26 + 2026-10-16 分页与字段核对（合并旧的三行：静态 pet_play_history / 页面请求 / 带 storyId）	confirmed	请求 `{1:游标(上一页最后一条时间戳 ms，翻页才带), 2:每页条数 20, 3:自己 petId, 100:2}`；回包 body.1 repeated，每条 `{1:storyId, 3:标题, 4:结果枚举, 5:叙事文案, 8:恒 2}`。storyId 前缀 6100_学习 / 6400_打工 / 6700_冒险 / 6900_挑战(PK)；标题带“（雇佣）/（被雇佣）”才是雇佣判据。条目内时间戳字段号未记全（模块按毫秒区间认 varint）。模块用途：外部任务识别、写命令未确认时核对、今日计数对账（v2.1.0）。
+0x975b	1	**到期收尾上报**	抓包实测 2026-10-14 19:33:12（与 0x9874 同秒）	likely	请求{1:6000, 2:storyId, 3:petId, 4:同一时间戳, 100:2}；回包很短 **2026-10-16：f1=6000 是固定参数（不是“召回”专属）**；与 0x9874_1 成对发出（页面行为，模块不发）。
+0x9bd6	1	**穿戴/使用装扮**	抓包实测 2026-10-14 19:29:28 SM-S9380 QQ9.3.75	likely	请求{1:petId, 2:9000}，回包带 355 与 {1:1}；2/355 具体含义待核（9000 像入口码，355 像物品/商城 id）
+0x99f3	1	合成并保存宠物形象（换装后）	抓包实测 2026-10-14 19:29:31	confirmed	不是“只存头像”：请求带各部件 id（5030180/9000603/2010452）与昵称，旧服务名 SaveAvatar 偏窄
+0x99f1	1	写回宠物资料（含新头像 URL 与签名）	抓包实测 2026-10-14 19:29:34	confirmed	请求 .4.2.3/.4.2.18=qqpet/head/… 图片 URL，.4.4=一段签名串
+0x9bd5	1	商城全部商品	静态C(fetchAllMarketGoods) + 抓包实测 2026-10-14 19:29:22	confirmed	请求{2:petId,100:1,101:版本号}；服务名与实际行为对上
+0x9bf5	1	商城/主页状态查询	静态C(getStatus) + 抓包实测 2026-10-14	likely	与 0x9bd5 同批发出，回包极短
+0x9b5a	1	资源/配置拉取	抓包实测 2026-10-14 19:29:22	likely	请求{1:QQ版本号, 2:1000006(appid), 4:petId, 6:1}，不是玩法命令
+0x9b6c	1	资源/配置拉取（另一路）	抓包实测 2026-10-14 19:29:22	likely	回包带 https://qqai.gtimg… URL
+0x99e9	1	保存一套穿搭（旧猜测）	静态A(SaveOneSuit)	rejected	**换装实测（19:29）全程未出现此号**；模块源码里真正的保存套装是 `0x9b6a saveOneSuit`（日志带 suitId/goodsSize/baseResId/snapshotUrl）——本行是按 trpc 服务名直译猜的，已推翻
+0x9b79	1	读取用户正在使用的背景/装扮	抓包实测 + 模块源码 pet_home.BackgroundDataSource.getUserUsingGoods	confirmed	日志“getUserUsingGoods: petId= / good is null”——旧行猜的“装扮页初始化”方向对但不准，实为背景（background）读取
+0x9b7f	1	一键照顾配置（带 version 3）	抓包实测 + 模块源码 pet_home.PetCareViewModel.fetchOneClickCareConfig	confirmed	日志“fetchOneClickCareConfig: from= / version 3 / petId is empty, skip”——与 0x99c2 同族但不是同一条
+0x9c3c	1	商城红点/入口标记	抓包实测 + 模块源码 pet_home.PetStoreDataSource.getMallRedDot	confirmed	日志“getMallRedDot req: cmd=0x … success: entry= / , baseResourceId=”
+0x9bd4	0	**VIP/SVIP 可领取礼包列表**	模块源码 `EntryNavVM.fetchVipReceiveInfo` + 抓包实测 2026-10-15 00:04:22（用户在主页点领 SVIP 礼包那两秒）	confirmed	请求体为空（读）；**回包直接给礼包内容**：`{1:礼包序号(1与2), 2:[{图标URL,“点券*5”},{图标URL,“饼干*20"}], 3:单号}`；主页有两个礼包就连发两条（序号 1、2）。模块日志“recorded lastVipFetchDate / date crossed req”→ **按天判定要不要拉**（所以 0 点后第一次进主页必发）。⚠ **整个领取过程没看到任何写包** → 领 SVIP 礼包要么走推送/账号侧，要么“读到即发放”，不在我们两条通道内
+0x99c2	0	一键照顾配置首次拉取	抓包实测 2026-10-14 20:08:24 + 模块源码 PetFeedViewModel/PetOutDoorVM.fetchOneClickCareConfigFirst	confirmed	日志“fetchOneClickCareConfigFirst: isConfigCall=first / , skip”→ 带首次去重，与 0x9b7f 同族两条
+0x9b62	1	**职业树/属性总览（三属性总量在里面；逐职业“当前/要求”仅供参考）**	抓包实测 2026-10-14 23:15:45 + rawsend 23:23:42 + **2026-10-15 00:59 拆行后拿到完整 36102 字节**	confirmed	请求 `{1:petId, 100:2}`；回包全在**文案**里：`力量839/0 智力1607/0 魅力6468/0`（总量，分母为 0 的那组就是自己当前值）与星级工分 20/2002；另有逐职业 `(力量|智力|魅力)(\d+)/(\d+)` 对。**⚠ 这些要求值不能当解锁决策用（用户指出）：能出现在列表里的职业都已解锁，要求值是历史门槛；未解锁那档只写“支付解锁费用 ???”无数值。**只当“事后校偏科倍率”的研样用。f1 传好友 petId 即读好友（好友B 1503/1700/1571）→ 战力=三属性之和，与 0x9ad4 自身 8914 完全相等
+0x9ae8	1	好友页请求（同一封装类的第三个方法）	模块 pet_friend.k4.q.g(String, cb, cb2)	todo	与 0x9ae6/0x9ae7 同一封装类，需抓包区分
+0x9b47	1	好友页请求（封装类 k4.q.i）	模块 pet_friend	todo	只有 petId+回调参数，无文案
+0x9b48	1	好友页请求（封装类 k4.q.j）	模块 pet_friend	todo	参数带 long（疑似 uin）+String
+# —— 2026-10-14 20:26~20:28 日记 / 设置 / 名片 抓包
+0x9762	0	日记按月分页拉取	抓包实测 2026-10-14 20:26:23	confirmed	请求{1:petId, 3:“2026-09”}；回包按日给 {1:“2026-09-23”, 2:[日记uuid…]}——旧行写的“日历/日记页取数”方对，但真正的区分在参数：f3 传“年-月”
+0x9763	0	日记按日取详情	抓包实测 2026-10-14 20:26:23	confirmed	请求{1:petId, 3:“2026-10-01”}——与 0x9762 同族，f3 传“年-月-日”
+0x9ba3	0	**日记点赞**	抓包实测 2026-10-14 20:26:29	confirmed	请求{1:petId, 2:日记uuid “de2aca3a-9380-…”，无其他控制字段；与 0x9ba4 成对（那条是取消）
+0x99f5	1	设置写回	抓包实测 2026-10-14 20:27:22（切开关那一刻）	confirmed	请求体极短（只有一个开关位），回包 .4.1.1=1；与 0x99f4（读）成对
+0x9c1b	1	宠物名片页取数	抓包实测 2026-10-14 20:28:28	likely	请求 .4=petId（其余空）；静态名 PetCardDataSource.fetchUserPetInfo 对得上
+# —— 2026-10-14 20:35 模块源码把“一键照顾”整条链挖出（未真机触发，按钮需服务端 canOneClickCare=1 才出现）
+0x9b80	?	**执行一键照顾**	模块源码 pet_home.q6.n.s：doOneClickCare: petId= / expectBiscuitCost= / expectSoapCost= / expectExpGain= / showCard=	likely	带预期消耗与预期收益（饼干/洗护/经验）与 isReplay/isHost/needShowAdoptionGuide；真机未触发（宠物状态好，按钮不出现）
+0x9e0e	?	设置一键照顾偏好	模块源码 pet_home.q6.r.i：setOneClickCareConfig: useGold=	likely	写操作：是否允许花金币买道具；与 0x9b7f（读）成对
+0x9ba4	0	**日记取消点赞**	抓包实测 2026-10-14 20:32:28（紧接着上一轮点赞）	confirmed	请求{1:petId, 2:日记uuid “0e411b7d-ed9b-…”}，与 0x9ba3 完全同形状——点赞/取消就是两条不同命令，不靠开关位
+0x9abe	0	**每日经验/任务总览（经验值的唯一读数入口）**	抓包实测 2026-10-15 00:27:27（界面 50/120 逐字对上）	confirmed	回包：`f2=今日已获得经验(50)`、`f3=今日上限(120)`、`f1=1.2 float(含义待核)`、`f4` = repeated 子任务 {1:英文key(如 syt4vbtj02 / visit_friend), 2:中文名, 3:当前, 5或11:上限, 6:mqqapi 跳转, 8:图标, 13:规则文案“每 体力/清洁+1经验，上限50”}→ **经验是每日任务制，每项有自己的小上限**（自己护理 50、踩踩 10），总 120；动作本身回包（0x992d/0x9bf3/0x9b80/0x99ef）均为空，经验不在里面。**已确认取值**：`visit_friend` 踩一踩 = **每次 +10 经验、每日最多 3 次**（子项里 `f4=完成次数`、`f5=上限次数`、`f10=已得经验`，3×10=30）；`enter_home`=10、`wear_cloth`=1 同样对应；护理型按“每 2 点体力/清洁 = 1 经验”计，不按次数。⚠ **五项 `f10` 之和（78）≠ 总经验（86）** → 还有表外来源，自动化只读 `f2`（总）与 `f3`（上限）
+0x9db9	1	等级奖励相关列表	抓包实测 2026-10-14 20:32:10（进等级页时）	likely	请求 .4=petId；回包带一批好友条目（昵称/头像/uin/petId）与“比心”字样，具体是可领奖励还是助力名单待分
+# —— 2026-10-14 20:42～20:43 雇佣代打 PK 全链抓包
+0x9bb3	0	**取消雇佣好友代打**	抓包实测 2026-10-14 20:42:47	confirmed	请求{1:自己petId, 2:好友petId}；全程只出现这一条独立命令——**雇佣本身不发包**，是在 0x975e 的开始包里带 f4 时由服务端完成并扣费（本次 250 金币，包内无金额字段）。**2026-10-15 02:21:15 复测**：参数完全一致（被取消的正是昨晚雇的那个好友），**回包 `.4/.5` 全空**；且**取消不退款**——取消前 02:20:49 金币 16289、取消后 02:24:15 仍 16289（一分没动）。官方“提前结束返还”指的是**被雇方召回时给雇主返基础工资**，与主动取消不是一回事
+0x9ab2	1	场景目录（6100 课程 / 6400 岗位 / 6700 冒险 / **6900 PK**）	实测 2026-09-24 + 抓包实测 2026-10-14 19:48:49（冒险）与 20:42:47.98/20:43:01.51（6900）	confirmed	**冒险目录要 f100=3 才回全量**（同时给“附近走走 45秒”与“诗和远方 2小时”）；我们原用 2 只拿 1 条，“服务器只下发一条”旧结论其实是参数错。PK 目录用 {1:6900, 2:petId, 3:好友petId}，雇佣关系变更后页面会重查；目录不回金币，只有工分 f15
+0x975e	1	开始故事：开课/开工/冒险/PK 统一入口	实测 2026-09-24 + 抓包实测 2026-10-14 19:50:11（开工）与 20:43:19（PK+雇佣）	confirmed	f1 区分场景 6100/6400/6700/6900；**f100 用 2**（只有 0x9ab2 目录用 3）；雇佣/PK 对手共用同一个子消息 **f4={1:petId, 2:uin}**；回包 .4.1=storyId、.4.4={1:state,2:总时长秒,3:剩余秒,4:开始时间戳秒}；冒险无需 f7，打工带 f6 岗位名+f7 subEvent。**PK 开工实测（2026-10-15 02:19:42 与 02:32:30 两次）**：`{1:6900, 2:自己petId, **4:{1:对手petId, 2:对手uin}**, **5:保镖petId**, 6:"PK", 7:6901, 100:2}` —— **`.4.5` 就是“雇来替我打的那个好友”**，两次实测均与结算页一致（第一次 = <好友uin> 那只，第二次 = 好友B `<好友petId>…`，结算页写“我请了好友B（主人：<好友昵称>）代打”）；回包 `.4.1`=storyId、`.4.3` 文案「我对 X 发起了PK，较量一触即发！」、`.4.4.6` 带对手 petId/uin/宠物头像/QQ 头像。**⚠ `.4.4`/`.4.5` 是两个“槽位”而不是固定某只宠物**：同一只（uin <好友uin>）在 02:19 那局站 `.4.5`（保镖），到 02:38 那局站 `.4.4`（对手）→ 解析时按字段含义取，不要拿 petId 当常量判“谁是保镖”。**★ 250 金币是“建立雇佣”的钱，不是每局 PK 的钱**：02:19 那局用的是昨晚已建立的雇佣关系，余额 **16235→16289（+54，没扣 250）**；02:32 那局新雇好友B，余额 **16357→16159 = -250 + 52 = -198** ✓
+0x9760	1	结算（action 1000）/ **召回与提前结束、PK 结算（action 6000）**	实测 2026-09-24 + 抓包 2026-10-14 19:17:51（召回 6000）、19:50:56（到期 1000）、20:43:28（PK 结束 6000）、**2026-10-15 00:14:14–17（雇主到期三发序列）**	confirmed	召回/PK 结算={1:storyId, 2:6000, 3:petId, 4:0, 100:2}；到期领奖={1:storyId, 2:1000, 3:petId, 4:0, 100:2}。**到期真实动作是三发**：到点前 3s 先 `{2:6000, 4:1}` → 到点 `{2:1000, 4:0}` → 紧接着 `{2:6000, 4:0}`，随后才 `0x9874`（结算页）+ `0x975b`（收尾）——我们现在只发一发 1000，可考虑照抄（另：19:33 人不在线时这三发全没出现但奖励照样到账 → 三发是“人在页面时页面自己走的一套”，不是服务端结算的前提）。**另：结算回包里的故事名直接写“练习室加练（雇佣）”→ 这才是“这条任务是不是雇佣来的”可靠判据，不用再猜 state=51**。旧结论“所有 action 都 135004”实为当时故事不可召回。**PK 结算也走这一条**（2026-10-15 02:19:51，开工 8~9 秒后页面自动发 `{1:storyId, 2:6000, 3:petId, 4:0, 100:2}`）：**结果看两个字段 —— `.4.1.1` 战斗结果（实测「胜利！」）与 `.4.1.18.8` 结算称号（实测「大获全胜」）**；`.4.1.2` 是 AI 写的赛后评论（**不能当结果读**，实测“谢谢保镖！下次我一定要自己变强了亲自赢回来”其实是赢局的话）。**两局都赢了**（上一版把 `.4.1.1` 的字节眼看解成“输了！”是错的，实际是「胜利！」；`e8839c e588a9 e4ba86 efbc81` = 胜利！）——**教训：解 UTF-8 文案必须走脚本，不能眼看**。→ **结果文案在 `.4.1.1`（「胜利！」）与 `.4.1.18.8`（「大获全胜」）**，奖励条目 `.4.1.3.1 = {1:1, 2:“金币”, 3:54}` 与 `{2:“心情值”, 3:2}`。⚠ **当时手头没有输局样本**（补采于 02:38:32，见下方“输局样本”行）。第二局（02:32:38，新雇好友B代打）：`.4.1.2`=「赢啦！请对人的感觉，安心又开心」、`.4.1.7`=「挑战 好友A」、`.4.1.18.8`=「大获全胜」，奖励 52 金币 + 心情值 2。
+★ **输局样本（2026-10-15 02:38:32，故意让保镖好友B 4856 去撞对手好友F 5622）**：结算回包 **`.4.1.18.8` = 「惜败」**（赢局是「大获全胜」）→ **这一位才是稳定的胜负判据**；`.4.1.12` = 小提示「不要灰心，努力出门学习，就能大大提升获胜的概率噢～」、`.4.1.7` = 「挑战 好友F」、`.4.1.2` = 「请了保镖还是输了…我一定会回来的！」；界面奖励 **15 金币 + 心情值 -1**，**实测余额 16159→16174（+15，没扣 250——沿用 02:32 已建立的雇佣）**、心情 100→99（输局真扣主人心情）。
+⚠ **action 取值差异（如实记录、不解释）**：两局胜利页面发的是 `f2=6000`，这一局落败页面发的是 **`f2=1000`** → “6000=召回 / 1000=到期领奖”的旧对应关系在 PK 场景并不成立，两个值都能用于 PK 结算。
+# —— 2026-10-14 21:0x 静态再捣一轮（who_uses 直接拿模块里的方法名与日志串）
+0x9c11	0	**信箱：可领取数量 + 邮件列表**	**sub=0 才有数据**（抓包实测 2026-10-15 00:56：`0x9c11_0` 回 7409 字节；`0x9c11_1` 回 150 no privilege）	confirmed	请求{1:petId}；body.f1 = repeated 邮件 {1:邮件id, 3:标题, 4:正文, 5:{1,2,3:发件人id/名/头像}, 6:时间戳ms, 7:附件{1:活动id, **2:领取token**, 4:[{1:类型,2:物品名,3:图标,4:数量}]}, 8:活动页URL}→ “邀请好友领养”的奖励就躺在这（本次点券×50未领）
+0x9c12	0	信箱：未读列表	抓包实测 2026-10-15 00:47（`0x9c12_0` 回 4 字节，当前无未读）	confirmed	请求{1:petId}；sub 同样必须是 0
+0x9c13	?	信箱：批量取邮件正文	模块 PetMailBoxRepository.batchGetMails	confirmed	请求带 petId + 邮件 id 列表
+0x9c14	?	信箱：上报已读	模块 PetMailBoxRepository.reportRead	confirmed	请求带 petId + long（邮件 id/时间）
+0x9c1a	? 或 0	信箱：删除邮件	模块源码 PetMailBoxRepository.deleteMail；**本家族 sub 实测统一为 0**（`0x9c11_0`/`0x9c19_0` 可用，`_1` 一律 150 no privilege）	confirmed	写操作；请求带 petId + 邮件 id
+0x9c17	0	信箱：领取单封邮件 claimMail	模块源码 `q4/h.c(String petId, String id, cb)` → 0x9c17	likely	参数形状由方法签名得出（petId + 邮件 id）；**本窗口未实测试**（无待领邮件），拿 token 去领会弄出未知状态，所以先不报 confirmed
+0x9c19	0	**信箱：一键全部领取 batchClaim**	抓包实测 2026-10-15 01:05:32（rawsend）	confirmed	请求 `{1:petId, 100:2}`，**sub 必须是 0**（`_1` 回 150 no privilege）；无待领时回 **`errorCode=136610“暂时还没有可领取的奖励呢”`** → 这就是“没东西可领”的权威错码
+0x9c6d	0	**每日签到领食物 claimCheckinFood**	抓包实测 2026-10-15 01:05:32（一发就成功）+ 01:07:41/01:10:26 库存比对	confirmed	请求 `{1:petId, 100:2}`（不需其他参数！`source=` 是客户端自己带的标识）；**回包 `f1` 已证明是“操作后的现有库存”而非发放量**：回 `f1=40`，当时库存确实是 40；用户吃掉 1 个后变 39；而签到前库存至少 29（23:19 读到 9 + 买了 4×5），若 40 是发放量则库存应为≈69 → 只能解释了库存。**同一命令当天再发一次：返回空响应**（不是错误码，被我们当 NotReady 抛错）→ “今天已领”靠空包判。`f2=5` 含义仍待解。
+0x9b6a	?	**保存一套穿搭 saveOneSuit**	模块 pet_home.PetStoreDataSource.saveOneSuit req: suitId= / goodsSize= / baseResId= / success, snapshotUrl=	confirmed	**换装链里真正的“保存套装”是这条**，不是 0x99e9（旧行按服务名猜错了，换装实测 0x99e9 全程未出现）
+0x9b6b	?	删除一套穿搭 removeOneSuit	模块 PetStoreDataSource.removeOneSuit: suitId=	confirmed	写操作
+0x9c3d	?	商城红点已读上报	模块 PetStoreDataSource.writeMallRedDotRead req: cmd=0x / node= / tabId= / appId=	confirmed	与 0x9c3c getMallRedDot 成对（一读一写）
+0x9c6d	?	**领取签到食物**	模块 pet_home.m6.w0.claimCheckinFood: petId= / source=	confirmed	日历/签到那条链的领取动作（旧 0x9764/0x9765 只是红点与页数据）
+0x9d68	?	拍一拍曝光上报	模块 pet_home.x5.k.reportPatExposure: friendUin= / patType=	confirmed	埋点性质，不是业务写操作
+0x9ce5	?	**宠物头像照片刷新与回写**	模块 pet_home.PetAvatarRefresher：photo_refresh / store_save / captureAndUpdate trigger= / specs= / reportPhotoRefresh	confirmed	换装后生成头像图并上报的那一跳——与 0x99f1(写回资料含头像URL)、0x99f3(合成形象) 同属一条链；旧行归在“主页并发读取”是错的
+0x9dd2	0	**可授权到群的宠物列表**（自己+好友，带三属性）	抓包实测 2026-10-14 21:04:33（进群宠物授权页）	confirmed	请求体空；回包 {昵称,头像URL,uin,petId,f10=5, 属性 fixed 100.0/100.0}——是 0x9b49 setPetGroupAuth 的前置读，不是宠物玩法命令
+0x9b47	0	**我的 QQ 群列表**	抓包实测 2026-10-14 21:01:04	confirmed	请求体空；回包 {群号, 群名, 人数}——就是“把宠物授权到哪个群”的群选择器；属QQ 群体系，不是宠物玩法
+0x9b48	0	**按群号查群名与成员**	抓包实测 2026-10-14 21:04:45	confirmed	请求{1:群号(varint)}；回包带群名与成员列表
+0x9ae8	?	好友页请求（封装类 k4.q.g，多一个 p4/a 参数）	模块 pet_friend	todo	无文案；p4/a 看着是回调包装，参数仍是 petId；本次未出现——它不在“群授权”链上，要另外那个入口才能撞
+# —— 2026-10-15 00:04 第一次抓到“雇主打开工”全链（新的一天，5:00 刷新前）
+0x975e	1	雇佣打工开工（雇主侧全链）	抓包实测 2026-10-15 00:04:17	confirmed	完整链：`0x9b60`(职业总览) → `0x9ab2 {1:6400, f10=careerType=7, f100=2}` 岗位目录 → 再发一次带 **f3=好友petId**（查好友可做岗位）→ `0x985d`(好友池选人) → `0x975e {1:6400, 4:{1:好友petId,2:好友uin}, 6:岗位名, 7:subEvent}`。→ **我们现有的 readWorkCareers/readWorkJobs(hiredPetId)/readPkOpponents 就是这条链，实现无需新增命令**
+0x9377	0	**主页运营位/活动配置**	抓包实测 2026-10-15 00:04:22.308	confirmed	请求 `{1:上次那个单号, 2:1, 5:"{}", 6:[…]}`；回包 `.4` 是一段 JSON `{"op":[{"ID":"bf3eb18…` → 就是 banner/运营位列表，**与领礼包无关**（礼包是 0x9bd4）。旧行“疑似下单跟踪”推翻
+# —— 2026-10-14 23:44 好友页买/喂拆开实测 + 非好友福袋负结论
+0x99df	1	买食物（**永远买给自己的库存**）	抓包实测 2026-10-14 23:52:59（id=1）与 23:53:03（id=3），23:53:30/37 在好友页重复	confirmed	请求{1:数量, 2:**自己petId**, 3:食物id}；界面上有**两种食物（id=1 与 id=3）**；默认批量是 5（用户没改数量）；在好友页点“买”发出去的包 petId 仍是自己的 → **不存在“为好友买”这种形态**
+0x9b5e	0	买食物前的前置查询	抓包实测 2026-10-14 23:52:58、23:53:01、23:53:28、23:53:36（四次买食物前各发一次）	confirmed	请求{1:petId, 2:固定串 "0b"}；只在买食物前出现、买洗护道具前不出现 → 相当于“可买性/价格校验”
+0x9bd0	0	买洗护道具	抓包实测 2026-10-14 23:53:15（序号1）与 23:53:20（序号2）	confirmed	请求{1:{1:1,2:1001,3:自己petId}, 2:1001, 3:{1:355, **2:序号**}}，序号 **1=香皂片、2=沐浴球**（与我们现有 buyBathItem 传 1/2 完全一致）；每次买之前会先发 `0x9bf1`(商城配置) + `0x9bf2`(库存)
+0x9949	1	自己的食物库存/目录（好友页也会顺带读）	抓包实测 2026-10-14 23:49:31；2026-10-15 01:07 读出《饼干(id=1)=40, 虾仁(id=3)=9》，01:10 变为 39（用户吃掉 1 个）	confirmed	回包形如 `{9, 99, “饼干”}`；**当前目录里只有两项：id=1 饼干、id=3 虾仁**，但用户提醒：**过往活动发过特殊道具，不能把“只有两种”当常量写死**，选食物要按目录实返的 id 走；`0x9949` 给永远是**自己**的库存（本次 饼干40→39），好友页也一样。
+0x992d	1	喂食（自身/好友同一条）	实测 2026-09-24（自身）+ 抓包实测 2026-10-14 20:49:30 与 23:44:36（好友向）	confirmed	好友向{1:好友uin（**字符串**）, 2:昵称（客户端自己传零宽占位符，不必真实）, 4:好友petId, 5:0, 10:{6:1,13:3}, 11:"1"}→ “代喂食需昵称字段所以不做”的旧保留意见推翻；旧记“回包为空，靠前后状态差判成功”仍成立
+0x96f2	1	三状态读数（**好友也能读**）	抓包实测 2026-10-14 20:49:32 与 23:44:38	confirmed	请求把 f1 传成**好友 petId** 即可；回包多个 fixed：100.0/100.0/89.0/96.x → 好友页拿真实心情/体力/清洁不需要另找命令
+0x9bd6	1	**不是“穿戴动作”**	抓包实测 2026-10-14 23:41:39（用户确认没点过任何穿戴/使用按钮）	todo	上一轮因它在换装流程里出现就定为“穿戴”，错了——进相关页面就会自动发（请求{1:petId,2:9000}，回包带 355），归为读取类
+# 非好友福袋：狂点也只弹“要好友才能领取”，本窗 0x9d70/0x9d71/0x9ae7 一条都没发 → **客户端本地拦的**；自动化先判好友关系，否则白点。抓包实测 2026-10-14 23:44
+# —— 2026-10-14 20:49～20:50 好友照顾实测（给好友甲喂食+洗澡各两次，给好友乙点一键清理）
+0x9875	1	**好友宠物状态 + 能不能雇佣的真值**	抓包实测 2026-10-14 20:49:24（好友页轮询，每 3s）	confirmed	请求{1:好友petId, 2:好友uin, 3:自己petId, 4:1, 100:2}；回包 f1.1=20（每日被雇佣上限）与 **f1.6=“对方宠物今天被雇佣次数已达上限”** → 自动雇佣/被雇佣提醒该读这条，而不是自己猜
+0x9bf3	1	**洗澡（可对待好友）**	抓包实测 2026-10-14 20:49:35	confirmed	好友向形态比自身多一个字段：{1:好友petId, 2:道具id“1”, 3:数量1, **4:好友uin**}；回包 {1:75,2:10,3:2,5:3,6:1} 就是洗后的清洁/心情变化
+# 0x99ef 旧行作废：曾猜“为好友买食物/道具”——错。定案在上方“代喂后推送消息（Sso_PetFeed_PushFeedMsg）”那一行。
+0x9b80	1	**一键照顾执行**	抓包实测 2026-10-14 20:50:00 与 **2026-10-15 02:44:03**（两次都对好友宠物执行）	confirmed	请求 `{1:好友petId, 2:2, [3:12,] 5:4, 6:1|3}`（旧行从模块日志推的 biscuit/soap/exp 预期字段就对应这几个小整数）；**两次参数不同**（上次 `6:3` 无 `f3`，这次 `3:12, 6:1`）→ 这几个位是**本次实际动作/消耗量**而不是常量；回包 `.4={1:1}` 成功——**不只对自己，对好友宠物也能一键做**。⚠ **重要：本条之后不会跟 `0x99ef` 推送**（实测 02:44:03 窗口内只有这一条，也没有 `0x992d`/`0x9bd0`，因库存够不需补货）→ **一键照顾时对方同样收不到“谁喂了我宠物”的通知**
+0x9bd0	0	下单买道具（一键照顾不够用时自动补货）	抓包实测 2026-10-14 20:50:01	confirmed	请求{1:{1:1,2:1001,3:petId}, 2:1001, 3:{1:355,2:1,3:1}, **4:12=价格**}；回包直接给到手物品“点券*5 / 饼干*20”与订单号 `<订单号>`——紧跟在 0x9b80 之后，说明一键照顾会自动花钱买齐道具
+0x9c0a	1	道具目录（含 id 354/355 等）	抓包实测 2026-10-14 20:50:00（一键照顾前自动发）	likely	请求{1:2}；回包“354/饼干/5”、“355…”——看形状是按类型拉可用道具
+0x96f2	1	宠物三属性读数（**好友也能读**）	抓包实测 2026-10-14 20:49:32	confirmed	请求直接把 f1 传成**好友 petId**；回包 fixed 0000c842=100.0、00007842=60.0 → 好友页想拿真实清洁/心情不需要另外找命令，这条就够
+0x992d	1	**喂食（自身/好友同一条，好友向多带 uin+昵称+petId）**	实测 2026-09-24（自身）+ 抓包实测 2026-10-14 20:49:30（好友向）	confirmed	好友向请求{1:好友uin, 2:昵称（客户端自己传的是零宽占位符，**不必真实**）, 4:好友petId, 5:0, 10:{6:1,…}, 11:"1"}——旧记“回包为空，靠前后状态差判成功”仍成立；**DEV-NOTES 里“代喂食需要昵称/头像字段但接口未实测，所以只做代洗”的保留意见可以推翻了**
+# —— 2026-10-14 20:24 商城（只逛不买）抓包
+0x9bcc	0	资产/金币流水分页	抓包实测 2026-10-14 20:24:01（静态名 fetchFlows）	confirmed	请求{1:3, 2:1, 5:20, 7:{1:1}} → 看形状是 类型=3/页码=1/每页=20/过滤
+0x9bcd	0	账户余额	抓包实测 2026-10-14 20:24:01（静态名 fetchBalance）	confirmed	请求{1:3, 2:{1:1, **2:1001**, 3:petId}}——1001 与商城 0x9bd0 的货币类型同一取值
+0x9bce	0	钻石/代币商品列表	抓包实测 2026-10-14 20:24:08（静态名 fetchDiamondList）	confirmed	请求{1:1, 2:{1:1, 2:1001, 3:petId}}；回包带一批商品 id 与子集（1000001/1000002/1000003 …）
+0x94bd	1	**VAS / 广告位配置拉取**（不是发奖）	抓包实测 2026-10-14 20:14:16（进商城）+ **2026-10-15 01:55:13（看视频前）**	confirmed	请求`{1:自己uin(int), 2:bytes}`；响应带 `.4.1.30001/.30002`（天玄广告位 URL）与 `.4.2=3600`（缓存 TTL）→ 就是广告位/权益配置拉取。
+# ★ **负面结果（2026-10-15 01:54～01:58 实测，必须记档）**：结算页（工资明细）上有「**看视频 +10**」（带锁 + “限时补贴”红标）。用户看完广告回来后**金币 16216 → 16226（正好 +10）确实到账**，但两条抓包通道（Kuikly 桥 + qqpet.delegate）**一个相关包都没抓到**。
+#   → **结论：“看广告得多收益”的发奖不走宠物 OIDB 通道**（广告 SDK / 账号侧），**没有包可发，做不了纯发包自动化**；只能靠 UI 层真点真看（另一类能力，有风控与体验代价）。以后别再找这个包。
+0x994a	1	→ 已改判为消息/通知中心，详见下方 01:46 那条（旧记“updateSeq”作废）
+0x9acb	?	宠物状态/生病消息拉取（**实测它也带福袋id**）	静态D(pet_home：日志写了 “[PetSick][Fetch] sending 0x9acb, petId=, msgTypes=”) + 抓包实测 2026-10-15 02:06:40	confirmed	参数 msgTypes；⚠ 02:06:40 那条 1991 字节响应里含好友B的袋id → 本条不只是生病消息，可能是“状态+事件消息”聚合，待拆
+0x9ac1	?	弹窗已读回执	静态D(pet_home：[EGPopup] ackPopup、事件 ai_pet_popup_consumed)	confirmed	参数 petId/ids
+0x9956	?	**抽奖/每日福袋入口**	静态D(pet_home：em_pet_lottery_activity、consumeNativeDailyB…、entry_id)	likely	旧文档说“领福袋看不到”，这里就是候选
+0x9955	?	主页红点已点记录/金币袋跳转	静态D(pet_home：onSelfPetReady retry openByCoinBagId=、egpet_record_reddot_clicked_)	likely	
+0x99ee	?	删除喂食/聊天记录	静态D(pet_feed_history：PetChatHistoryRepository deleteRecord)	likely	写操作
+0x9b49	?	设置群宠物授权	静态D(pet_friend：GroupTabViewModel setPetGroupAuth groupCode=, target=)	confirmed	写操作
+0x9ae7	?	邀请好友养宠	静态D(pet_friend：InviteTabViewModel inviteFriend start / already invited today)	confirmed	每天一次，重复会被客户端自己拦
+# 0x9ae6 旧行（已被上面抓包行覆盖）好友页请求（待细分）
+0x9ae8	?	好友页请求（待细分）	静态D(pet_friend.ProtoUtil)	todo	
+0x9b47	?	好友页请求（待细分）	静态D(pet_friend.ProtoUtil)	todo	旧表里列为未知名
+0x9b48	?	好友页请求（待细分）	静态D(pet_friend.ProtoUtil)	todo	
+0x99ce	?	【容器】白名单检查	静态D(page_craft_main.WhitelistService.Check)	likely	非宠物
+0x9ad7	?	【容器】好友推荐列表	静态D(page_craft_main.FriendRecTabSvr.Get)	likely	非宠物
+0x9b33	?	【容器】学校列表	静态D(page_craft_main.School.List)	likely	非宠物（天选页选大学）
+0x9b34	?	【容器】清空学校选择	静态D(page_craft_main.School.Clear)	likely	非宠物
+0x93ba	?	通用 OIDB 发送器本身（非具体命令）	静态D(page_craft_main.VasPbOIDBRequest)	todo	号从参数来，不是常量
+
+# 2026-10-15 v2.0.0 接入备注：0x9c11_0/0x9c19_0/0x9c6d_0/0x9b62_1/0x9abe_0/0x994a_1/0x99ef_1/0x9bd4_0 已进 net/Commands.kt；0x9b87/0x985e 请求体未抓到，代码按 {1:petId,100:2} 发（0x9b87 sub 按 0/1 试），标“实验”。
+# ===== 2026-11 补充（源码公开版整理，2026-11-19）：以 net/Commands.kt（11-11 版）为准；同 cmd+sub 的后写行覆盖前面 =====
+0x9bb1	0	**行为上报 ReportAction（自摸；服务端在此结算每日摸摸金币）**	抓包实测 2026-11-10 22:38（纯净对照）+ 静态A	confirmed	REPORT_ACTION；请求 `{1:"101", 2:"P1002", 3:"P1002", 4:时间戳ms, 5:token}`，回包为空是常态；每日一次约 +6~+7 金币。模块已定义、主流程目前未调用。写命令，勿盲发。
+0x9d9e	0	**任务加成道具使用（学习/打工中用道具）**	抓包实测 2026-11-11（学习、打工各一轮）	confirmed	ITEM_USE；请求 `{1:petId, 2:storyId, 3:族id, 4:{1:族id, 2:场景(1=打工,2=学习), 3:1}, 5:trace}`；回包带效果文案（如「金币 +500」「力量 +1」）与剩余数量；学习每趟限 1 杯，超出回 135109「本次学习该道具仅能喝1杯」。写命令。
+0x9bd5	1	**按道具族查背包（同一条也用于商城商品读取）**	抓包实测 2026-11-11 + 2026-10-14 19:29:22	confirmed	ITEM_INVENTORY；模块用法 `{1:族id, 2:petId}`（356=学习道具、357=打工道具）；回包 `.1` 重复 `{1:族id, 2:数量, 6:名称, 7:描述}`。商城页的请求形态为 `{2:petId,100:1,101:版本号}`。
+0x9e9c	1	**每日免费学习道具福利（列表/领取）**	抓包实测 2026-11-11 17:00	confirmed	DAILY_ITEM；请求 `{1:petId}`，调用即领、幂等（已领回状态 2）；页面上紧随其后常见 0x9bd6_1。写命令（领取）。
+0x96a6	1	上报行为 ReportEvent（开工前置/访问/洗澡；**摸好友**也走这条，好友心情 +2）	实测 2026-09-24 + 抓包实测 2026-10-14 19:31:12 + **2026-11-10 23:09（摸好友，AIRequestModule 通道）**	confirmed	REPORT_EVENT；`{1:petId(好友向为好友petId), 2:好友uin, 3:path{page,event,sub}, 4:空}`；摸好友 path={1000,300,301}，回包内层 `{2:{1:次数, 2:心情增量 float}}`；每人每天一次。勋章页 path={11000,80,0}、装扮页 {1000,100,101}。写命令。
+0x9bd4	0	**VIP/SVIP 每日礼包列表**	抓包实测 2026-11-10 21:23 + 2026-10-15 00:04:22	confirmed	VIP_RECEIVE；空 body；回包 `.4.1`=领取状态(1 可领/2 已领)、`.4.2`=奖励条目（图标+“点券*5”/“饼干*20”）、`.4.3`=SubActId——领取时交给 WebSSO `MQUpdateSvc_com_qq_vip.web.OidbSvcTrpcJsapiTcp.0x9377_0` 的 data.SubActId（超额回 Code -4020「中了用户日限制」）。
+0x9762	0	日记按月列表	抓包实测 2026-10-14/15 + 2026-11-11	confirmed	DIARY_MONTH；`{1:petId, 3:"YYYY-MM"}`；回包按天 `{1:日期, 2:重复{1:日记uuid}}`。
+0x9ba3	0	**日记点赞**	抓包实测 2026-10-14/15 + 2026-11-11 15:23	confirmed	DIARY_LIKE；`{1:petId, 2:日记uuid}`；回包 `.1`=感谢文案；已点过回空包（服务器静默忽略）。与 0x9ba4（取消）成对。写命令。
+0x9bd6	1	进道具相关页面时自动发的读取（含义待核）	抓包 2026-10-14 + 2026-11-11 17:00（领每日学习道具时紧随 0x9e9c）	todo	请求 `{1:petId, 2:数字}`（见过 9000、356、357；356/357 正好是学习/打工道具族 id）；回包带 355；未接入。
+0x9eda	0	红点相关读取（含义待核）	抓包 2026-11-10 22:00（进火花页时顺带出现）	todo	请求 `.4={1:1000}`；未接入。
+0x9edb	0	红点上报/清除（含义待核）	抓包 2026-11-10 22:00	todo	请求 `{1:"pet_red_dot_<时间戳>_<hash>", 2:{1:1000, 2:1004, 3:1}}`；未接入，疑似写命令，勿盲发。

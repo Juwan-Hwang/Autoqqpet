@@ -1,0 +1,47 @@
+*.iml
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+_build.log
+*.log
+__pycache__/
+*.pyc
+
+# 签名材料：绝不入库（fork 者自备 keystore.properties 与 .jks，放在本地即可）
+keystore.properties
+keystore*/
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+
+# 私有加固工具及其产物（公开版已移除 hardening/；防止 opcode 映射、种子、mapping.txt 被误带入）
+hardening/
+*.secret
+seal/
+mapping.txt
+**/mapping.txt
+
+# 原始抓包与回包转储（可能含账号、uin、token、cookie）
+recon-raw/
+tools/pet_recon/resp_*.txt
+
+# 抓包运行态（一个时间戳 + 一份“已见过的命令号”，都能重新生成，不必入库）
+tools/pet_recon/peek_mark.txt
+
+# JVM 崩溃转储（recon 分支曾误入库，别再带进来）
+hs_err_pid*.log
+replay_pid*.log
+work/

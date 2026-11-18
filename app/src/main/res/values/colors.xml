@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  只给窗口用的两三个颜色（启动瞬间、Compose 首帧之前）。
+  界面里的全部颜色在 ui/theme/Tokens.kt，这里与之保持一致。
+-->
+<resources>
+    <color name="window_canvas">#FFE3EFF9</color>
+    <color name="window_ink">#FF17161B</color>
+    <color name="brand">#FF2A64A3</color>
+</resources>

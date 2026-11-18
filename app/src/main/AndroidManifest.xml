@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 以前这里有一个可选的 SYSTEM_ALERT_WINDOW：它唯一的用途是让看门狗在后台把 QQ 拉到前台。
+         2026-10-13 定下“任何时候都不打扰用户”后这条路径已删除，权限也一并删（不再申请任何用不到的权限）；
+         恢复只用静默唤进程/试绑服务，真需要用户动手时只发通知。 -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- 内部广播权限（签名级）：只有与本应用同签名的组件能通过它互发广播，挡住同机其它应用
+         向命令/同步通道乱发消息（2026-10-19 审计 F1/F2）。合法发送方是模块 App 的通道挂它；
+         发送方是 QQ 进程的通道挂不了（QQ 是腾讯签名），逐条决定见各组件注释。 -->
+    <permission
+        android:name="com.juwanh.autoqqpet.permission.BROADCAST"
+        android:label="@string/perm_broadcast_label"
+        android:description="@string/perm_broadcast_desc"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.juwanh.autoqqpet.permission.BROADCAST" />
+
+    <queries>
+        <package android:name="com.tencent.mobileqq" />
+        <!-- Android 11+ 包可见性：要能解析到 QQ 的 provider，才能用“查一下 provider”的写法只唤进进程不弹界面 -->
+        <provider android:authorities="com.tencent.mobileqq.openapi.provider" />
+    </queries>
+
+    <application
+        android:name=".AutoqqpetApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:description="@string/module_description"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@style/Theme.Autoqqpet"
+        tools:targetApi="q">
+
+        <!-- 经典 Xposed 元数据：兼容只读 manifest 的扫描器/商店展示，并让作用域安装时预勾选 QQ；
+             与 libxposed 的 META-INF/xposed/scope.list + staticScope 互补，不冲突 -->
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:value="@string/module_description" />
+        <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+
+        <!-- 唯一的界面入口：全部页面（首启合规、主页、设置、排班、诊断、关于）都在 Compose 里，自管返回栈。
+             预测性返回动画交给系统（enableOnBackInvokedCallback）。 -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+        </activity>
+
+        <!-- 强保活前台服务：持唤醒锁 + 实时状态通知 + 看门狗 -->
+        <service
+            android:name=".keepalive.KeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="qq_pet_auto_scheduler" />
+        </service>
+
+        <!-- 接收 QQ 进程发来的心跳/状态，更新通知。
+             保持 exported 且不挂权限：发送方是 QQ 进程（腾讯签名），它拿不到我们的签名级
+             权限，挂了这条心跳就断了（2026-10-19 审计 F3 的逐条决定）。载荷只是状态文本与
+             快照，伪造的影响限于通知与界面显示，调度真值在 QQ 侧本地状态机里。 -->
+        <receiver
+            android:name=".keepalive.StatusReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.juwanhwang.autoqqpet.STATUS" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 接收 QQ 进程回传的打工目录（“在哪里打工”下拉框的数据源），存进模块自己的 prefs。
+             同 StatusReceiver：发送方是 QQ 进程，只能保持导出；载荷是目录缓存，下游使用时
+             还会与服务器实时读数核对，伪造只能干扰一段时间的调度质量，碰不到钱与账号。 -->
+        <receiver
+            android:name=".ui.JobCatalogReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.juwanhwang.autoqqpet.JOBS" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 开机自启保活。挂签名级权限挡任意应用用显式意图伪造触发；系统广播
+             （BOOT_COMPLETED / MY_PACKAGE_REPLACED）由系统进程发送、不受组件权限拦截，照常到达。 -->
+        <receiver
+            android:name=".keepalive.BootReceiver"
+            android:exported="true"
+            android:permission="com.juwanh.autoqqpet.permission.BROADCAST">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <!--
+          主存备份的接收端：QQ 进程把「设置 / 当日进度」送进来，存到模块自己的数据目录；
+          反过来 QQ 本地被清（重装/清数据）时，它发一个 ask 过来，我们再把备份原样回送。
+          为什么不用 ContentProvider：Android 11+ 跳包读 provider 需要调用方（QQ）清单里声明 <queries>，
+          我们改不了 QQ 的清单（真机实测 QQ 进程报 Unknown authority）；而发广播不受包可见性限制。
+          为什么不挂签名级权限：发送方是 QQ 进程（腾讯签名），挂了备份通道就断了。本端的
+          鉴权收口在对侧——QQ 里的 SideStore 接收端只收模块 App（持签名权限）发来的回送；
+          本端收到的载荷另有时间戳守卫判新旧（见 Store / SettingsStamp）。
+        -->
+        <receiver
+            android:name=".store.StoreReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.juwanhwang.autoqqpet.STORE" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

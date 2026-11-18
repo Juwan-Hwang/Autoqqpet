@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Autoqqpet</string>
+    <string name="perm_broadcast_label">Autoqqpet 内部通信</string>
+    <string name="perm_broadcast_desc">只用于 Autoqqpet 界面与 QQ 内的模块之间互发消息，其它应用无法使用。</string>
+    <string name="module_description">QQ 宠物自动托管：学习、打工、冒险与照顾，在手机 QQ 里自己跑。非官方，风险自负。</string>
+</resources>

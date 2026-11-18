@@ -1,0 +1,131 @@
+apply plugin: 'com.android.application'
+// 界面用 Jetpack Compose：编译器插件随 Kotlin 版本走（根 build.gradle 的 kotlinVersion）
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+// 正式签名从仓库根的 keystore.properties 读取（storeFile / storePassword / keyAlias / keyPassword）。
+// 源码公开版不带任何签名材料：没有 keystore.properties 时自动回退为 Android 默认 debug 签名，不报错。
+// fork 者请用自己的 key；自签包与官方包签名不同，从官方版换过来需先卸载再安装。
+def ksProps = new Properties()
+def ksFile = rootProject.file("keystore.properties")
+if (ksFile.exists()) ksFile.withInputStream { ksProps.load(it) }
+def ksReady = ksProps.getProperty("storeFile")?.trim()
+
+android {
+    compileSdk 37
+    namespace 'io.github.juwanhwang.autoqqpet'
+
+    signingConfigs {
+        release {
+            if (ksReady) {
+                storeFile rootProject.file(ksProps.getProperty("storeFile"))
+                storePassword ksProps.getProperty("storePassword")
+                keyAlias ksProps.getProperty("keyAlias")
+                keyPassword ksProps.getProperty("keyPassword")
+            }
+        }
+    }
+
+    defaultConfig {
+        // 对外身份用自有域名反写（LSPosed 模块仓库要求反域名可验证）；
+        // namespace 仍为代码包名（java_init.list 里的 FQCN 跟它走），两者故意不一致。
+        applicationId "com.juwanh.autoqqpet"
+        minSdk 26
+        //noinspection ExpiredTargetSdkVersion
+        targetSdk 34
+        versionCode 65
+        versionName "2.2.1"
+        // 界面文案是硬编码中文：只打包中文资源，把 AndroidX 自带的 80+ 语言翻译全部剔出 APK
+        resourceConfigurations += ["zh"]
+    }
+
+    buildFeatures {
+        buildConfig = true
+        compose = true
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            // 有自己的发布 key 时调试包也用它签名（覆盖安装同 key 的 release 包不冲突）；没有就用默认 debug 签名
+            if (ksReady) signingConfig signingConfigs.release
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            // R8 只做裁剪/优化、不混淆（-dontobfuscate，见 proguard-rules.pro）+ 资源裁剪
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // 缺 keystore.properties 时回退为默认 debug 签名，assembleRelease 不报错且产物可直接安装
+            signingConfig ksReady ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    // libxposed 的模块元数据放在 META-INF/xposed/**，必须保留、不能被合并裁剪
+    packaging {
+        resources {
+            merges += "META-INF/xposed/**"
+            // 运行期用不到的元数据：剔掉，APK 更小
+            excludes += [
+                    "META-INF/*.version",
+                    "META-INF/*.properties",
+                    // META-INF/services/** 不能再剔：Compose 依赖的 kotlinx-coroutines 靠 ServiceLoader 找 Android 主线程调度器
+                    "kotlin/**",
+                    "kotlin-tooling-metadata.json",
+                    "DebugProbesKt.bin",
+                    "**/*.kotlin_builtins",
+                    "**/*.kotlin_metadata",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE*",
+                    "META-INF/NOTICE*"
+            ]
+        }
+    }
+
+    // 依赖清单（Play 商店用）不打进 APK；本项目从 GitHub Releases 分发
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    // 纯逻辑单元测试（JUnit4，app/src/test）：android.jar 桩方法返回默认值而不是抛异常，
+    // 这样被测代码里顺手调到的 Log 之类不会让测试崩；org.json 用真实现（桩里的 JSONObject 全是空方法）。
+    // 截图测试（Robolectric + Roborazzi）要读资源与 assets
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // libxposed API 102：目标进程内的模块入口用 compileOnly；模块 App 进程用 service 探测启用状态
+    compileOnly 'io.github.libxposed:api:102.0.0'
+    implementation 'io.github.libxposed:service:102.0.0'
+
+    // 通知（NotificationCompat）与权限检查；界面已不用 AppCompat / RecyclerView
+    implementation 'androidx.core:core-ktx:1.13.1'
+
+    // 界面：Compose（BOM 统一版本）。只取 foundation/animation/material3 主体，不引图标库（图标自绘）
+    implementation platform('androidx.compose:compose-bom:2026.09.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.animation:animation'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.activity:activity-compose:1.13.0'
+
+    // 后端纯逻辑单元测试：JUnit4 + 真 org.json
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+
+    // 界面截图测试：在 JVM 上把各页面渲染成 PNG（CI 产物 autoqqpet-screens），只进测试，不进 APK
+    testImplementation 'org.robolectric:robolectric:4.17'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi:1.76.0'
+    testImplementation platform('androidx.compose:compose-bom:2026.09.00')
+    testImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+}

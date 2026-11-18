@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  窗口主题。界面全部由 Compose 绘制，这里只决定启动那一瞬间的底色与系统栏：
+  底色与 Compose 的 canvas 同色，冷启动不闪白；系统栏透明，由 enableEdgeToEdge 接管。
+-->
+<resources>
+    <style name="Theme.Autoqqpet" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_canvas</item>
+        <item name="android:colorBackground">@color/window_canvas</item>
+        <item name="android:colorAccent">@color/brand</item>
+        <item name="android:textColorPrimary">@color/window_ink</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,64 @@
+name: build
+# 源码公开版：跑单元测试并打一个 release 包。没有 keystore.properties 时用默认 debug 签名（与官方包签名不同）。
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: SDK packages (compileSdk 37 名称随版本变化，按可用的取)
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          P=$(sdkmanager --list 2>/dev/null | grep -oE "platforms;android-37[^ ]*" | sort -u | head -1)
+          [ -n "$P" ] && sdkmanager "$P" || true
+      - name: EULA in sync
+        run: python3 tools/sync_eula.py --check
+      - name: Unit tests
+        run: chmod +x gradlew && ./gradlew --no-daemon testDebugUnitTest
+      - name: Assemble release
+        run: ./gradlew --no-daemon assembleRelease
+      - name: Verify recon capability stripped from release
+        # 抓包/调试命令只在 src/debug：release dex 里不应出现这些标记。
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          DEX=$(mktemp -d)
+          unzip -o -q "$APK" 'classes*.dex' -d "$DEX"
+          HITS=$(cat "$DEX"/classes*.dex | strings -a | grep -E 'KuiklyPacketLogger|DebugCommands' || true)
+          if [ -n "$HITS" ]; then echo "::error::Release APK still contains debug-only recon classes:"; echo "$HITS"; exit 1; fi
+          echo "OK: release dex contains no debug-only recon classes"
+      - name: Collect APK
+        run: |
+          VER=$(grep -oP 'versionName "\K[^"]+' app/build.gradle)
+          mkdir -p out
+          cp app/build/outputs/apk/release/*.apk "out/autoqqpet-v${VER}-${GITHUB_SHA::7}.apk"
+          sha256sum out/*.apk | tee out/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: autoqqpet-apk
+          path: out/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: autoqqpet-screens
+          path: app/build/outputs/roborazzi/
+          retention-days: 14
+          if-no-files-found: ignore

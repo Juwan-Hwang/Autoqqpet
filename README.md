@@ -10,13 +10,13 @@
 <p align="center">
   <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest"><b>下载最新版</b></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest">模块仓库</a>
+  <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases">更新日志</a>
   &nbsp;·&nbsp;
-  <a href="CHANGELOG.md">更新日志</a>
+  <a href="LICENSE.md">源码许可</a>
   &nbsp;·&nbsp;
-  <a href="LICENSE.md">许可协议</a>
+  <a href="EULA.md">用户许可协议</a>
   &nbsp;·&nbsp;
-  <a href="https://t.me/Juwan_H">交流群</a>
+  <a href="docs/README.md">开发文档</a>
 </p>
 
 <p align="center">
@@ -24,25 +24,36 @@
   <a href="https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases"><img src="https://img.shields.io/github/downloads/Xposed-Modules-Repo/com.juwanh.autoqqpet/total" alt="总下载量"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" alt="Android 8.0 以上">
   <img src="https://img.shields.io/badge/LSPosed-模块-009688" alt="LSPosed 模块">
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/许可-EULA-8899BB" alt="许可协议"></a>
-  <a href="https://t.me/Juwan_H"><img src="https://img.shields.io/badge/Telegram-交流群-26A5E4?logo=telegram&logoColor=white" alt="Telegram 交流群"></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/源码许可-PolyForm%20Noncommercial%201.0.0-8899BB" alt="源码许可：PolyForm Noncommercial 1.0.0"></a>
 </p>
 
 ---
 
-> **先读这三句**
+> **先读这几句**
 >
 > 1. **完全免费。** 没有内购、会员、广告，也不收集任何数据。向你收费、卖“激活码”“内部版”的，都是别人二次打包的。
 > 2. **风险自负。** 它调用手机 QQ 自己的宠物接口，属于非官方自动化。平台可能限制功能或封号，通常无法申诉。请只在你自己的账号与设备上使用。
-> 3. **不开源，与腾讯无关。** 这里只提供安装包与使用说明；本项目不是官方产品，也没有获得任何授权或背书。
+> 3. **与腾讯无关。** 本项目不是官方产品，也没有获得任何授权或背书。
+> 4. **不再积极维护。** 源码按现状提供，作者基本不再改动代码；Issue 不保证回复，PR 不保证合并。
 
 ---
 
-## 交流群
+## 源码公开说明
 
-Telegram：https://t.me/Juwan_H
+源码按 [PolyForm Noncommercial License 1.0.0](LICENSE.md) 公开：个人自用、学习、研究都可以，也可以 fork、修改、再分发，不要求公开你改过的代码；但不能用于任何盈利用途，比如售卖、捆绑进付费产品或代挂代练。再分发时附上 `LICENSE.md` 即可。
 
-反馈问题、交流用法都在群里，也可以去 GitHub 开 issue。
+QQ 更新后想自己适配，命令表、抓包工具和流程都在仓库里，也可以把抓到的结果连同相关源码交给 AI 助手帮你改。命令含义是逆向整理的，不保证准确；会改账号状态或花金币的写命令，建议先抓官方客户端的包确认再用。
+
+**入口：**
+- 文档索引：[docs/README.md](docs/README.md)
+- 模块在用的命令表：[docs/commands-in-use.md](docs/commands-in-use.md)；全量逆向总表：[docs/pet-commands.md](docs/pet-commands.md)；已知命令号清单：`tools/pet_recon/known_cmds.txt`
+- 抓新命令的工具与流程：`tools/pet_recon/`、[docs/capture-guide.md](docs/capture-guide.md)
+
+**自己构建：** `./gradlew assembleDebug`（带抓包/调试命令）或 `./gradlew assembleRelease`。仓库不带任何签名材料：
+在仓库根放你自己的 `keystore.properties`（`storeFile` / `storePassword` / `keyAlias` / `keyPassword`）即用你自己的 key 签名，没有时自动用默认 debug 签名。
+**请用你自己的 key，你的包与官方发布包签名不同**——从官方版换成自己构建的版本（或反过来）需要**先卸载再安装**（卸载会清掉模块自己保存的设置与进度）。
+**fork 后请改包名**：把 `app/build.gradle` 里的 `applicationId "com.juwanh.autoqqpet"` 改成你自己的（如 `io.github.<你的用户名>.autoqqpet`），这样能和官方包共存，用户也不会把你的版本当成官方版。`namespace`（代码包名）不用动，`java_init.list` 里的入口类名跟它走；改完记得在框架里重新勾选作用域。
+源码公开版停用了开屏前的协议确认页（原代码以注释保留），也不包含官方发布包里的加固组件。
 
 ## 为什么用它
 
@@ -64,7 +75,7 @@ Telegram：https://t.me/Juwan_H
 | **排班** | 自己定顺序：每一步“做什么、做哪一条、做几次或做多久”，做完进下一步；可设例外规则，比如“体力低于 30 时，先照顾”。 |
 | **学累了自动收手** | 不靠猜：读服务器发下来的结算明细，实收比预期少了，才判定这一档今天干累了，第二天自动重来。 |
 | **算得清账** | 今天净赚多少金币、一整天的金币曲线、服务器实发了哪些奖励，主页一眼看完；每天零点归档成「昨天」报告。 |
-| **雇好友一起干**（默认关） | 开工时雇一个好友的宠物一起打工，多一份金币收益，还可能给自己加属性；可以手动指定雇谁，不指定就按学到的性价比自动挑；开工前先问服务器对方能不能雇。 |
+| **雇好友一起干**（默认关） | 250 金币只在第一次雇时扣，当天复用不再花钱；只在预期多赚够 250 的长单上新雇；开工前先问服务器对方能不能雇。 |
 | **被雇走自动召回**（默认开） | 确认被好友雇走（服务器通知里有“雇佣了”）后，进度到 71% 叫回来，拿满基础工资和 75% 分成；可改成“立刻召回”。 |
 | **属性与经验** | 主页显示力量、智力、魅力、战力和今日经验；PK 按真实战力只挑弱一截的对手，胜负按服务器结算称号判断。 |
 | **火花** | 你定每天踩谁、谁永远不踩；每天各踩一次不断线，快断了提醒你。可选回踩（默认关）。 |
@@ -87,14 +98,14 @@ Telegram：https://t.me/Juwan_H
 
 ## 安装
 
-**0. 先校验（建议）。** 下载后核对 SHA-256 与发布页写明的值一致；不一致就不要装。文件名形如 `autoqqpet-v<版本号>.apk`，两处下载页是同一个签名文件，校验和相同。
+**0. 先校验（建议）。** 下载后核对 SHA-256 与发布页写明的值一致；不一致就不要装。文件名形如 `autoqqpet-v<版本号>.apk`，
 
 ```
 certutil -hashfile autoqqpet-v<版本号>.apk SHA256   # Windows
 shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 ```
 
-1. 从 [模块仓库 Releases](https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest) 下载最新 APK 并安装；LSPosed / Vector 商店里点“下载”也是同一个文件。升级直接覆盖安装，设置与当日进度都在。
+1. 从 [模块仓库 Releases](https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases/latest) 下载最新 APK 并安装（LSPosed / Vector 商店里点“下载”也是这里）。升级直接覆盖安装，设置与当日进度都在。
 2. 打开 LSPosed / Vector，启用 **Autoqqpet**，作用域勾选 **QQ**。
 3. **彻底关掉 QQ 再打开**（模块只在 QQ 启动时加载）。
 4. 打开 Autoqqpet，读完首启说明与许可协议，允许通知。
@@ -105,7 +116,7 @@ shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 
 ## 第一次打开
 
-只出现一次（协议文本更新后会请你重新确认）：
+只出现一次（协议文本更新后会请你重新确认；用本仓库源码自己构建的版本没有这一步）：
 
 1. **开始之前**：免费、风险自负、与腾讯无关 —— 三件事说清楚再往下。
 2. **许可协议**：读到最后才能勾选“我已阅读并同意”，勾选后才能继续。不同意就退出，什么也不会保存。
@@ -119,14 +130,14 @@ shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 - **提醒**：模块没启用、该召回了、照顾被拒、学费不够、信箱可领、QQ 失联时才出现，并告诉你下一步怎么做。
 - **托管开关**，以及 **怎么干活**（最优调度 / 学习优先 / 打工优先 / 只冒险 / 排班）和 **练什么**（力量 / 智力 / 魅力）。
 - **属性与经验**：力量、智力、魅力、战力，今日经验进度与各项每日任务。
-- **今日收益**：主数字跟着当前目标走（工分优先看工分、属性优先看目标属性涨幅、金币优先看金币净变化），金币曲线与服务器实发的奖励。
+- **今日收益**：金币净变化（滚动数字）、会自己画出来的金币曲线、服务器实发的奖励。
 - **今天**：学习、打工、冒险各几次，学工与冒险的时长构成。
 - **时间线**：今天做过的每一件事。
-- **昨天**：一句话总结加八格数字（次数与实收涨幅），PK、雇佣、帮好友、福袋另起一行。
+- **昨天**：一句话总结加四格数字，PK、雇佣、帮好友、福袋另起一行。
 
 **设置** —— 每一项都写清楚开或关会发生什么。
 - 干活：干活方式（五挡）、去哪打工、刷新打工目录、排班、学习停课线、每天最多冒险几次、任务间隔、学习/打工鼓励次数、实时叙事、读结算明细、用实收校准收益。
-- 金币与雇佣：金币底线、开工时雇好友、雇佣指定名单与每日上限、被雇走自动召回与召回时机。花金币的开关打开前都会先说清楚。
+- 金币与雇佣：金币底线、开工时雇好友与每日上限、被雇走自动召回与召回时机。花金币的开关打开前都会先说清楚。
 - 照顾与补给：体力和清洁低于多少就照顾、用完自动补货。
 - 每日白捡：签到领食物、信箱一键领取与提醒、福袋。
 - 好友：火花（每天踩谁/不踩谁、回踩、快断提醒）、任务间隙 PK 与上限和对手强弱比例、替好友喂食洗澡（可选喂完告诉对方）、一键照顾、黑名单、白名单、刷新好友列表。
@@ -135,7 +146,7 @@ shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 
 **排班** —— 按住把手拖动排序；轻点一步就能改；规则读起来是一句话。只有最后一步可以“一直循环”。
 
-**运行诊断** —— 模块、QQ、心跳、唤醒计划、通知、电池优化逐项体检，QQ 的电池状态也直接查真实结果。一键采集运行快照、复制全文，或带着快照去 GitHub 反馈。
+**运行诊断** —— 模块、QQ、心跳、唤醒计划、通知、电池优化逐项体检；无法自动判断的项（如 QQ 的后台限制）可点按钮手动确认。一键采集运行快照、复制全文，或带着快照去 GitHub 反馈。
 
 ## 常见问题
 
@@ -174,12 +185,11 @@ shasum -a 256 autoqqpet-v<版本号>.apk                # macOS / Linux
 
 ## 许可
 
-本软件**不开源**，适用 [《用户许可协议》](LICENSE.md)（专有许可，不是 MIT / Apache 这类开源许可证）。
-要点：免费自用；不得售卖、捆绑、再发布或冒充官方；只在自己的账号上使用；作者可随时终止许可与停止分发；适用中华人民共和国法律。
+- **源码**：按 [PolyForm Noncommercial License 1.0.0](LICENSE.md) 公开，仅限非商业用途（见上文「源码公开说明」）。
+- **官方发布的安装包**：另适用应用内的 [《用户许可协议》](EULA.md)：免费自用；不得售卖、捆绑或冒充官方；只在自己的账号上使用；适用中华人民共和国法律。
 
 「QQ」「QQ 宠物」及相关标识归腾讯所有。本项目与腾讯没有任何关联。
 
 ## 版本
 
-变更记录见 [CHANGELOG.md](CHANGELOG.md)。
-
+各版本变化见 [模块仓库 Releases](https://github.com/Xposed-Modules-Repo/com.juwanh.autoqqpet/releases)。

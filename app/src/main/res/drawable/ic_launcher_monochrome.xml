@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 主题图标（Android 13+ 单色）：身体轮廓 + 镂空的眼睛（evenOdd）。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:pathData="M54.00,41.14 L54.00,33.88" />
+    <path android:fillColor="#000000" android:pathData="M54.00,34.54 C51.36,29.26 44.10,29.92 43.44,33.22 C46.08,36.52 51.36,36.52 54.00,34.54 Z" />
+    <path android:fillColor="#000000" android:pathData="M54.00,33.88 C55.98,27.94 62.58,27.28 63.90,30.58 C61.92,34.54 56.64,35.86 54.00,33.88 Z" />
+    <path android:fillColor="#000000" android:fillType="evenOdd" android:pathData="M54.00,40.48 C73.80,40.48 79.08,49.72 79.08,61.60 C79.08,74.80 68.52,80.08 54.00,80.08 C39.48,80.08 28.92,74.80 28.92,61.60 C28.92,49.72 34.20,40.48 54.00,40.48 Z M43.18,59.62 a2.24,3.14 0 1,0 4.49,0 a2.24,3.14 0 1,0 -4.49,0 Z M60.34,59.62 a2.24,3.14 0 1,0 4.49,0 a2.24,3.14 0 1,0 -4.49,0 Z" />
+</vector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- LSPosed/兼容扫描器读取此数组，安装时预勾选模块作用域 -->
+    <string-array name="xposed_scope">
+        <item>com.tencent.mobileqq</item>
+    </string-array>
+</resources>
